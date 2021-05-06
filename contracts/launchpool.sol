@@ -1,11 +1,21 @@
 // SPDX-License-Identifier: MIT
-pragma solidity 0.8.0;
+pragma solidity 0.7.0;
 
-import "@openzeppelin/contracts/utils/escrow/Escrow.sol";
-import "@openzeppelin/contracts/token/IERC20.sol";
-import "./launchbonus";
+import "@openzeppelin/contracts/access/Ownable.sol";
+// import "./launchbonus";
 
-contract LaunchPool {
+interface InterfaceToken {
+    function decimals() external view returns (uint8);
+    function totalSupply() external view returns (uint256);
+    function balanceOf(address account) external view returns (uint256);
+    function transfer(address recipient, uint256 amount) external returns (bool);
+    function allowance(address owner, address spender) external view returns (uint256);
+    function approve(address spender, uint256 amount) external returns (bool);
+    function transferFrom(address sender, address recipient, uint256 amount) external returns (bool);
+}
+
+
+contract LaunchPool is Ownable {
     // 0 - Initialized - Not started yet, setup stage
     // 1 - Staking/unstaking - Started
     // 2 - Paused - Staking stopped
@@ -13,14 +23,13 @@ contract LaunchPool {
     // 4 - Failed
     uint8 public status;
     string public name;
+    // IPFS hash containing JSON informations about the project
+    string public metadata;
     uint256 private _startTimestamp;
     uint256 private _endTimestamp;
-    uint256 private _tokenConversion;
     uint256 private _accountsStakeCount;
 
-    LaunchBonus private _bonuses;
-    // IPFS hash containing JSON informations about the project
-    bytes32 public metadata;
+    // LaunchBonus private _bonuses;
 
     // Token list to show on frontend
     address[] private tokenList;
@@ -28,13 +37,13 @@ contract LaunchPool {
     mapping(address => uint8) private _tokenDecimals;
 
     struct TokenStake {
-		address payee;
+		address investor;
         address token;
         // TODO Use this variable co calculare the correct token result
         uint8 decimals;
 		uint256 amount;
         // TODO Calculate this bonuses 
-        uint256[] bonuses;
+        // uint256[] bonuses;
 	}
 
     // Stakes struct array
@@ -47,70 +56,124 @@ contract LaunchPool {
     // Prevent access elements bigger then stake size
     uint256 private _stakesCount;
 
-    event Staked(address indexed payee, address indexed token, uint256 amount);
+    event Staked(uint256 index, address indexed investor, address indexed token, uint256 amount);
     event Unstaked(
-        address indexed payee,
+        uint256 index,
+        address indexed investor,
         address indexed token,
-        address index,
         uint256 amount
+    );
+    event MetadataUpdated(
+        string indexed newHash
+    );
+    event NameUpdated(
+        string indexed newName
     );
 
     constructor (
-        string memory _poolName,
         address[] memory allowedTokens,
-        uint256[] uintArgs,
-        bytes32 _metadata,
+        uint256[] memory uintArgs,
+        string memory _poolName,
+        string memory _metadata
     ) {
         // Allow at most 3 coins
         require(
             allowedTokens.length >= 1 && allowedTokens.length <= 3,
             "There must be at least 1 and at most 3 tokens"
         );
-        require(
-            allowedTokens.length == tokensDecimals.length,
-            "Tokens and Decimals array should be same size"
-        );
         name = _poolName;
-        minCommitment = uintArgs[0];
-        maxCommitment = uintArgs[1];
-        _endTimestamp = uintArgs[2];
-        _tokenConversion = uintArgs[3];
+        _stakesMin = uintArgs[0];
+        _stakesMax = uintArgs[1];
+        _startTimestamp = uintArgs[2];
+        _endTimestamp = uintArgs[3];
 
         for (uint i = 0; i<allowedTokens.length; i++) {
-            _tokenDecimals[token] = IERC20(token).decimals();
+            _tokenDecimals[allowedTokens[i]] = InterfaceToken(allowedTokens[i]).decimals();
             _allowedTokens[allowedTokens[i]] = true;
         }
 
-        _bonuses = new LaunchBonus()
-        for (uint i = 4; i<uintArgs.length; i+2) {
-            _bonuses.addBonus(uintArgs[i], uintArgs[i+1]);
-        }
+        // _bonuses = new LaunchBonus()
+        // for (uint i = 4; i<uintArgs.length; i+2) {
+        //     _bonuses.addBonus(uintArgs[i], uintArgs[i+1]);
+        // }
 
         metadata = _metadata;
     }
 
     modifier isTokenAllowed(address _tokenAddr) {
         require(
-            _allowedTokenAddresses[_tokenAddr],
+            _allowedTokens[_tokenAddr],
             "Cannot deposit that token"
         );
         _;
     }
 
-    modifier isLaunchPoolOpen() {
-        require(now <= _endTimestamp, "LaunchPool is closed");
+    modifier isStaking() {
+        require(block.timestamp > _startTimestamp, "LaunchPool has not started");
+        require(block.timestamp <= _endTimestamp, "LaunchPool is closed");
+        require(status > 1, "LaunchPool is not staking");
         _;
     }
 
-    modifier hasRoomForDeposit(uint256 amount) {
+    modifier isPaused() {
+        require(status != 2, "LaunchPool is not paused");
+        _;
+    }
+
+    modifier isConcluded() {
+        require(block.timestamp >= _endTimestamp, "LaunchPool end timestamp not reached");
+        require(_stakesTotal >= _stakesMin, "LaunchPool not reached minimum stake");
+        _;
+    }
+
+    modifier isFinalized() {
+        require(block.timestamp >= _endTimestamp, "LaunchPool end timestamp not reached");
+        require(status != 3, "LaunchPool is not finalized");
+        _;
+    }
+
+    modifier hasMaxStakeReached(uint256 amount) {
         require(
-            _totalStaked + amount <= maxCommitment,
+            _stakesTotal + amount <= _stakesMax,
             "Maximum staked amount exceeded"
         );
         _;
     }
 
-    function updateMetadata(bytes32 _hash) external onlyOwner {
+    function stakesOf(address investor)
+        public
+        view
+        returns (uint256[] memory)
+    {
+        uint256[] memory stakes = new uint256[](_stakesByAccount[investor].length);
+        for (uint i = 0; i < _stakesByAccount[investor].length; i ++){
+            stakes[i*2] = _stakes[_stakesByAccount[investor][i]].decimals;
+            stakes[i*2 + 1] = _stakes[_stakesByAccount[investor][i]].amount;
+        }
+        return stakes;
+    }
+
+    function stakesTotal() public view returns (uint256) {
+        return _stakesTotal;
+    }
+
+    function isFunded() public view returns (bool) {
+        return _stakesTotal >= _stakesMin;
+    }
+
+    function endTimestamp() public view returns (uint256) {
+        return _endTimestamp;
+    }
+
+    function stakeCount() public view returns (uint256) {
+        return _accountsStakeCount;
+    }
+
+    function updateName(string memory name_) external onlyOwner {
+        name = name_;
+    }
+
+    function updateMetadata(string memory _hash) external onlyOwner {
         metadata = _hash;
     }
 
@@ -119,104 +182,75 @@ contract LaunchPool {
      */
     function stake(address token, uint256 amount)
         external
+        isStaking
         isTokenAllowed(token)
-        isLaunchPoolOpen
-        hasRoomForDeposit(amount)
+        hasMaxStakeReached(amount)
     {
-        address payee = msg.sender;
+        
         // If the transfer fails, we revert and don't record the amount.
         require(
-            IERC20(token).transferFrom(
+            InterfaceToken(token).transferFrom(
                 msg.sender,
                 address(this),
                 amount
             ),
-            "Did not get the moneys"
+            "Token transfer rejected"
         );
 
-        if (!_accountHasStaked(payee)) {
-            _accountsStakeCount += 1;
-        }
-
-        memory uint256[] bonus = _bonuses.drainAmount(amount);
-        _stakes[payee].push(TokenStake(payee, token, _tokenDecimals[token], amount, bonus))
-        // TODO MUST consider token decimals
-        _stakesByAccount[payee] = _stakesByAccount[payee] + amount;
-        _totalStaked += amount;
-        emit Staked(payee, token, amount);
+        // Store stake id after insert it to the queue
+        _stakes.push(TokenStake(msg.sender, token, 0, amount));
+        uint256 stakeId = _stakes.length - 1;
+        _stakesByAccount[msg.sender].push(stakeId);
+        _stakesTotal += amount;
+        _stakesCount += 1;
+        emit Staked(stakeId, msg.sender, token, amount);
     }
 
-    function unstake(uint256 stakeId) external isTokenAllowed(token) {
-        TokenStake currStake = _stakes[msg.sender][stakeId];
+    function unstake(uint256 stakeId) external {
+        require( _stakesByAccount[msg.sender].length > stakeId, "Not the stake investor" );
 
-        _totalStaked -= currStake.amount;
-        _stakesByAccount[msg.sender] -= currStake;
-        _stakes[msg.sender][token] = 0;
+        uint256 globalId = _stakesByAccount[msg.sender][stakeId];
+        TokenStake memory _stake = _stakes[globalId];
 
-        if (!_accountHasStaked(msg.sender)) {
-            _accountsStakeCount -= 1;
-        }
-
+        require( _stake.investor == msg.sender, "Not the stake investor" );
+        require( _stake.amount > 0, "Stake removed" );
         require(
-            IERC20Minimal(token).transfer(msg.sender, currStake),
-            "Could not send the moneys"
+            InterfaceToken(_stake.token).transfer(msg.sender, _stake.amount),
+            "Could not transfer stake back to the investor"
         );
 
-        emit Unstaked(msg.sender, token, currStake);
+        _stakesCount -= 1;
+        _stakesTotal -= _stake.amount;
+        _stakes[globalId].amount = 0;
+        emit Unstaked(globalId, msg.sender, _stake.token, _stake.amount);
     }
 
-    function stakesOf(address payee)
-        public
-        view
-        returns (uint256)
-    {
-        return _stakes[payee];
-    }
-
-    function totalStakesOf(address payee) public view returns (uint256) {
-        return _stakesByAccount[payee];
-    }
-
-    function totalStakes() public view returns (uint256) {
-        return _totalStaked;
-    }
-
-    function isFunded() public view returns (bool) {
-        return _totalStaked >= minCommitment;
-    }
-
-    function endTimestamp() public view returns (uint256) {
-        return _endTimestamp;
-    }
-
-    /** Kind of a weird name. Will change it eventually. */
-    function stakeCount() public view returns (uint256) {
-        return _accountsStakeCount;
-    }
-
-    function _accountHasStaked(address account) private view returns (bool) {
-        return _stakesByAccount[account] != 0;
-    }
-
-    function pause() external onlyOwner {
+    function pause() external onlyOwner isStaking {
         // TODO Define rules to pause
-        paused = true;
+        status = 2;
 	}
-    function unpause() external onlyOwner {
+    function unpause() external onlyOwner isPaused {
         // TODO Define rules to unpause
-        paused = false;
+        status = 1;
 	}
 
-    function finalize() external onlyOwner {
+    function finalize() external onlyOwner isConcluded {
         // TODO Define rules to finalize / end timestamp? / total staked?
         // TODO Deploy tokens
-		finalized = true;
+		status = 3;
 	}
-    function withdrawStakes() external onlyOwner {
+    function withdrawStakes(address token) external onlyOwner isFinalized {
         // TODO Define rules to owner withdraw tokens / finalized?
+        InterfaceToken instance = InterfaceToken(token);
+        uint256 tokenBalance = instance.balanceOf(address(this));
+        instance.transfer(
+            msg.sender,
+            tokenBalance
+        );
     }
 
-    function claimStakes() public {
+    function claimTokens() public {
         // TODO Define how stakes will be claimed
+
     }
 }

@@ -1,39 +1,50 @@
 // SPDX-License-Identifier: MIT
-pragma solidity 0.8.0;
+pragma solidity 0.7.0;
 
 import "@openzeppelin/contracts/access/Ownable.sol";
-
-struct StakeBonus {
-    uint256 current;
-    uint256 total;
-    uint bonus;
-}
+import "@openzeppelin/contracts/math/SafeMath.sol";
 
 contract LaunchBonus is Ownable {
+    using SafeMath for uint256;
 
-    event BonusAdded(uint256 amount, uint8 bonus);
-    event AmountDrained(uint256 amount, uint8 bonus)
+    event BonusAdded(uint256 amount, uint bonus);
+    event AmountDrained(uint256 amount, uint bonus);
+
+    /**
+     * @dev Returns the smallest of two numbers.
+     */
+    function min(uint256 a, uint256 b) internal pure returns (uint256) {
+        return a < b ? a : b;
+    }
+
+    struct StakeBonus {
+        uint256 current;
+        uint256 total;
+        uint bonus;
+    }
 
     StakeBonus[] bonusLevels;
 
-    public addBonus(uint256 _amount, uint _bonus) external onlyOwner {
-        bonusLevels.push(StakeBonus(_amount, _amount, _bonus))
-        emit BonusAdded(_amount, _bonus)
+    function addBonus(uint256 _amount, uint _bonus) external onlyOwner {
+        bonusLevels.push(StakeBonus(_amount, _amount, _bonus));
+        emit BonusAdded(_amount, _bonus);
     }
 
-    public drainAmount(uint256 _amount) external onlyOwner returns (uint256[] memory resultBonuses){
+    function drainAmount(uint256 _amount) external onlyOwner returns (uint256[] memory){
         uint cut = 0;
-        for (uint i=0; i<bonusLevels.length; i++){
-            cut = min(bonusLevels[i].amount, _amount);
+        uint256 currentAmount = _amount;
+        uint256[] memory resultBonuses = new uint256[](bonusLevels.length*2);
+        for (uint i = 0; i < bonusLevels.length; i ++){
+            cut = min(bonusLevels[i].current, currentAmount);
             if (cut > 0){
-                _amount -= cut;
-                bonusLevels[i].amount -= cut;
-                resultBonuses.push(cut);
-                resultBonuses.push(bonusLevels[i].bonus);
-                emit AmountDrained(cut, bonusLevels[i].bonus)
+                currentAmount -= cut;
+                bonusLevels[i].current -= cut;
+                resultBonuses[i*2] = cut;
+                resultBonuses[i*2 + 1] = bonusLevels[i].bonus;
+                emit AmountDrained(cut, bonusLevels[i].bonus);
             }
         }
-        return resultBonuses
+        return resultBonuses;
     }
 
 }
