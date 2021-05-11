@@ -1,5 +1,6 @@
 const LaunchPool = artifacts.require("LaunchPool");
 const LaunchToken = artifacts.require("LaunchToken");
+const PoolFactory = artifacts.require("PoolFactory");
 const web3 = require('web3');
 const { expect } = require('chai');
 
@@ -7,12 +8,24 @@ const { expect } = require('chai');
 contract('Stake Tests', async (accounts) => {
   before(async function () {
     // Deploy token
-    this.pool = await LaunchPool.deployed();
+    this.factory = await PoolFactory.deployed();
     this.token = await LaunchToken.deployed();
   });
  
-  it('Should Exist First Company', async function () {
-    let balance = await this.token.balanceOf(accounts[0]);
-    expect(balance.toString()).to.equal("1000000");
+  it('Deploy a new launch pool', async function () {
+    const poolAddress = await this.factory.createLaunchPool(
+      [this.token.address],
+      [web3.utils.toWei('100','ether'),
+      web3.utils.toWei('5000000','ether'),
+      parseInt(Date.now()*0.001) + 2,
+      parseInt(Date.now()*0.001) + 1000],
+      'Test Pool',
+      'QmXE83PeG8xq8sT6GdeoYaAVVozAcJ4dN7xVCLuehDxVb1',
+    )
+    // console.log(JSON.stringify(poolAddress));
+
+    this.pool = await LaunchPool.at(poolAddress.logs[0].args.pool);
+    expect(await this.pool.name()).to.equal("Test Pool");
+    expect(await this.pool.metadata()).to.equal("QmXE83PeG8xq8sT6GdeoYaAVVozAcJ4dN7xVCLuehDxVb1");
   });
 })

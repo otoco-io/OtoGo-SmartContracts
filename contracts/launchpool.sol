@@ -22,7 +22,7 @@ contract LaunchPool is Ownable {
     // 3 - Finished - Staking finished, start calculation and distribution
     // 4 - Failed
     enum Stages {NotInitialized, Initialized, Staking, Paused, Finalized, Aborted}
-    Stages public stage = Stages.Initialized;
+    Stages public stage = Stages.NotInitialized;
     string public name;
     // IPFS hash containing JSON informations about the project
     string public metadata;
@@ -245,7 +245,6 @@ contract LaunchPool is Ownable {
         // TODO Define rules to unpause
         stage = Stages.Staking;
 	}
-
     function finalize() external onlyOwner isConcluded {
         // TODO Define rules to finalize / end timestamp? / total staked?
         // TODO Deploy tokens
@@ -260,7 +259,6 @@ contract LaunchPool is Ownable {
             tokenBalance
         );
     }
-
     function claimTokens() public {
         // TODO Define how stakes will be claimed
 
