@@ -14,12 +14,12 @@
     "url": "git+https://github.com/otocorp/OtoGo-SmartContracts.git"
   },
   "dependencies": {
+    "@openzeppelin/contracts": "^4.1.0",
+    "@openzeppelin/contracts-upgradeable": "^4.1.0",
     "@truffle/hdwallet-provider": "^1.3.0",
     "chai": "^4.2.0"
   },
   "devDependencies": {
-    "@openzeppelin/contracts": "^3.4.1",
-    "@openzeppelin/contracts-upgradeable": "^3.2.0",
     "@openzeppelin/truffle-upgrades": "^1.2.4"
   },
   "keywords": [

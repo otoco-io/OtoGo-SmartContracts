@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity 0.7.0;
+pragma solidity 0.8.4;
 
 import "@openzeppelin/contracts/access/Ownable.sol";
 // import "./launchbonus";
@@ -21,7 +21,8 @@ contract LaunchPool is Ownable {
     // 2 - Paused - Staking stopped
     // 3 - Finished - Staking finished, start calculation and distribution
     // 4 - Failed
-    uint8 public status;
+    enum Stages {NotInitialized, Initialized, Staking, Paused, Finalized, Aborted}
+    Stages public stage = Stages.Initialized;
     string public name;
     // IPFS hash containing JSON informations about the project
     string public metadata;
@@ -42,12 +43,12 @@ contract LaunchPool is Ownable {
         // TODO Use this variable co calculare the correct token result
         uint8 decimals;
 		uint256 amount;
-        // TODO Calculate this bonuses 
+        // TODO Calculate this bonuses
         // uint256[] bonuses;
 	}
 
-    // Stakes struct array
-    TokenStake[] private _stakes;
+    // Stakes struct mapping
+    mapping(uint256 => TokenStake) private _stakes;
     // Points to respective stake on _stakes
     mapping(address => uint256[]) private _stakesByAccount;
     uint256 private _stakesMax;
@@ -70,12 +71,13 @@ contract LaunchPool is Ownable {
         string indexed newName
     );
 
-    constructor (
+    function initialize(
         address[] memory allowedTokens,
         uint256[] memory uintArgs,
         string memory _poolName,
         string memory _metadata
-    ) {
+    ) public {
+        require(stage == Stages.NotInitialized, 'Contract already Initialized.');
         // Allow at most 3 coins
         require(
             allowedTokens.length >= 1 && allowedTokens.length <= 3,
@@ -98,6 +100,7 @@ contract LaunchPool is Ownable {
         // }
 
         metadata = _metadata;
+        stage = Stages.Initialized;
     }
 
     modifier isTokenAllowed(address _tokenAddr) {
@@ -111,12 +114,12 @@ contract LaunchPool is Ownable {
     modifier isStaking() {
         require(block.timestamp > _startTimestamp, "LaunchPool has not started");
         require(block.timestamp <= _endTimestamp, "LaunchPool is closed");
-        require(status > 1, "LaunchPool is not staking");
+        require(stage == Stages.Staking, "LaunchPool is not staking");
         _;
     }
 
     modifier isPaused() {
-        require(status != 2, "LaunchPool is not paused");
+        require(stage == Stages.Paused, "LaunchPool is not paused");
         _;
     }
 
@@ -128,7 +131,7 @@ contract LaunchPool is Ownable {
 
     modifier isFinalized() {
         require(block.timestamp >= _endTimestamp, "LaunchPool end timestamp not reached");
-        require(status != 3, "LaunchPool is not finalized");
+        require(stage == Stages.Finalized, "LaunchPool is not finalized");
         _;
     }
 
@@ -140,7 +143,7 @@ contract LaunchPool is Ownable {
         _;
     }
 
-    function stakesOf(address investor)
+    function stakesDetailedOf(address investor)
         public
         view
         returns (uint256[] memory)
@@ -151,6 +154,10 @@ contract LaunchPool is Ownable {
             stakes[i*2 + 1] = _stakes[_stakesByAccount[investor][i]].amount;
         }
         return stakes;
+    }
+
+    function stakesOf(address investor) public view returns (uint256[] memory) {
+        return _stakesByAccount[investor];
     }
 
     function stakesTotal() public view returns (uint256) {
@@ -186,7 +193,6 @@ contract LaunchPool is Ownable {
         isTokenAllowed(token)
         hasMaxStakeReached(amount)
     {
-        
         // If the transfer fails, we revert and don't record the amount.
         require(
             InterfaceToken(token).transferFrom(
@@ -198,22 +204,28 @@ contract LaunchPool is Ownable {
         );
 
         // Store stake id after insert it to the queue
-        _stakes.push(TokenStake(msg.sender, token, 0, amount));
-        uint256 stakeId = _stakes.length - 1;
-        _stakesByAccount[msg.sender].push(stakeId);
+        TokenStake storage s = _stakes[_stakesCount];
+
+        s.investor = msg.sender;
+        s.token = token;
+        s.decimals = 0;
+        s.amount = amount;
+
+        _stakesByAccount[msg.sender].push(_stakesCount);
         _stakesTotal += amount;
+        emit Staked(_stakesCount, msg.sender, token, amount);
         _stakesCount += 1;
-        emit Staked(stakeId, msg.sender, token, amount);
     }
 
+    // Enter a stake id from investor to unstake
     function unstake(uint256 stakeId) external {
-        require( _stakesByAccount[msg.sender].length > stakeId, "Not the stake investor" );
+        require(_stakesByAccount[msg.sender].length > stakeId, "Not the stake investor");
 
         uint256 globalId = _stakesByAccount[msg.sender][stakeId];
         TokenStake memory _stake = _stakes[globalId];
 
-        require( _stake.investor == msg.sender, "Not the stake investor" );
-        require( _stake.amount > 0, "Stake removed" );
+        require(_stake.investor == msg.sender, "Not the stake investor");
+        require(_stake.amount > 0, "Stake already unstaked");
         require(
             InterfaceToken(_stake.token).transfer(msg.sender, _stake.amount),
             "Could not transfer stake back to the investor"
@@ -227,17 +239,17 @@ contract LaunchPool is Ownable {
 
     function pause() external onlyOwner isStaking {
         // TODO Define rules to pause
-        status = 2;
+        stage = Stages.Paused;
 	}
     function unpause() external onlyOwner isPaused {
         // TODO Define rules to unpause
-        status = 1;
+        stage = Stages.Staking;
 	}
 
     function finalize() external onlyOwner isConcluded {
         // TODO Define rules to finalize / end timestamp? / total staked?
         // TODO Deploy tokens
-		status = 3;
+		stage = Stages.Finalized;
 	}
     function withdrawStakes(address token) external onlyOwner isFinalized {
         // TODO Define rules to owner withdraw tokens / finalized?
