@@ -30,7 +30,9 @@ contract('Stake Tests', async (accounts) => {
   });
 
   it ('Stake launch pool', async function () {
+    expect((await this.pool.stage()).toString()).to.be.equals('1');
     await this.pool.open();
+    expect((await this.pool.stage()).toString()).to.be.equals('2');
     await this.token.transfer(accounts[1], (2*(10**18)).toString());
     await this.token.approve(this.pool.address, (2*(10**18)).toString(), {from:accounts[1]});
     await this.pool.stake(this.token.address, (1*(10**18)).toString(), {from:accounts[1]});

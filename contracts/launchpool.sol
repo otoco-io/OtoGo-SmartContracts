@@ -182,6 +182,8 @@ contract LaunchPool {
         return _stakesTotal;
     }
 
+
+
     function isFunded() public view returns (bool) {
         return _stakesTotal >= _stakesMin;
     }
@@ -241,12 +243,10 @@ contract LaunchPool {
 
     // Enter a stake id from investor to unstake
     function unstake(uint256 stakeId) external {
-        require(_stakesByAccount[msg.sender].length > stakeId, "Not the stake investor");
+        require(_stakesByAccount[msg.sender].length > stakeId, "Stake index out of bounds");
 
         uint256 globalId = _stakesByAccount[msg.sender][stakeId];
         TokenStake memory _stake = _stakes[globalId];
-
-        require(_stake.investor == msg.sender, "Not the stake investor");
         require(_stake.amount > 0, "Stake already unstaked");
         require(
             InterfaceToken(_stake.token).transfer(msg.sender, _stake.amount),
