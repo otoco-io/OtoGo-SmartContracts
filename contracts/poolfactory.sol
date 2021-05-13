@@ -1,16 +1,18 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.4;
 
-import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
-import "@openzeppelin/contracts-upgradeable/proxy/ClonesUpgradeable.sol";
+import "../node_modules/@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
+import "../node_modules/@openzeppelin/contracts-upgradeable/proxy/ClonesUpgradeable.sol";
 
 interface PoolInterface {
     function initialize(
         address[] memory allowedTokens,
         uint256[] memory uintArgs,
         string memory _poolName,
-        string memory _metadata
+        string memory _metadata,
+        address _sponsor
     ) external;
+    function transferOwnership(address newOwner) external;
 }
 
 contract PoolFactory is OwnableUpgradeable {
@@ -33,7 +35,7 @@ contract PoolFactory is OwnableUpgradeable {
         string memory _metadata
     ) external returns (address pool){
         pool = ClonesUpgradeable.cloneDeterministic(_poolSource, (keccak256(abi.encodePacked(_poolName))));
-        PoolInterface(pool).initialize(_allowedTokens, _uintArgs, _poolName, _metadata);
+        PoolInterface(pool).initialize(_allowedTokens, _uintArgs, _poolName, _metadata, msg.sender);
         emit PoolCreated(_poolName, pool);
     }
 }

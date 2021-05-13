@@ -1,7 +1,5 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.4;
-
-import "@openzeppelin/contracts/access/Ownable.sol";
 // import "./launchbonus";
 
 interface InterfaceToken {
@@ -14,13 +12,14 @@ interface InterfaceToken {
     function transferFrom(address sender, address recipient, uint256 amount) external returns (bool);
 }
 
-
-contract LaunchPool is Ownable {
-    // 0 - Initialized - Not started yet, setup stage
-    // 1 - Staking/unstaking - Started
-    // 2 - Paused - Staking stopped
-    // 3 - Finished - Staking finished, start calculation and distribution
-    // 4 - Failed
+contract LaunchPool {
+    address private _sponsor;
+    // 0 - Not Initialized - Not even set variables yet
+    // 1 - Initialized - Not started yet, setup stage
+    // 2 - Staking/unstaking - Started
+    // 3 - Paused - Staking stopped
+    // 4 - Finished - Staking finished, start calculation and distribution
+    // 5 - Failed
     enum Stages {NotInitialized, Initialized, Staking, Paused, Finalized, Aborted}
     Stages public stage = Stages.NotInitialized;
     string public name;
@@ -40,8 +39,7 @@ contract LaunchPool is Ownable {
     struct TokenStake {
 		address investor;
         address token;
-        // TODO Use this variable co calculare the correct token result
-        uint8 decimals;
+        // TODO Use this variable co calculare the correct token results
 		uint256 amount;
         // TODO Calculate this bonuses
         // uint256[] bonuses;
@@ -75,7 +73,8 @@ contract LaunchPool is Ownable {
         address[] memory allowedTokens,
         uint256[] memory uintArgs,
         string memory _poolName,
-        string memory _metadata
+        string memory _metadata,
+        address _owner
     ) public {
         require(stage == Stages.NotInitialized, 'Contract already Initialized.');
         // Allow at most 3 coins
@@ -99,6 +98,7 @@ contract LaunchPool is Ownable {
         //     _bonuses.addBonus(uintArgs[i], uintArgs[i+1]);
         // }
 
+        _sponsor = _owner;
         metadata = _metadata;
         stage = Stages.Initialized;
     }
@@ -111,10 +111,16 @@ contract LaunchPool is Ownable {
         _;
     }
 
+    modifier isInitialized() {
+        require(block.timestamp > _startTimestamp, "Launch Pool has not started");
+        require(stage == Stages.Initialized, "Launch Pool is not Initialized");
+        _;
+    }
+
     modifier isStaking() {
-        require(block.timestamp > _startTimestamp, "LaunchPool has not started");
-        require(block.timestamp <= _endTimestamp, "LaunchPool is closed");
-        require(stage == Stages.Staking, "LaunchPool is not staking");
+        require(block.timestamp > _startTimestamp, "Launch Pool has not started");
+        require(block.timestamp <= _endTimestamp, "Launch Pool is closed");
+        require(stage == Stages.Staking, "Launch Pool is not staking");
         _;
     }
 
@@ -143,14 +149,26 @@ contract LaunchPool is Ownable {
         _;
     }
 
+    modifier onlySponsor() {
+        require(sponsor() == msg.sender, "Sponsor: caller is not the sponsor");
+        _;
+    }
+
+    /**
+     * @dev Returns the address of the current sponsor.
+     */
+    function sponsor() public view virtual returns (address) {
+        return _sponsor;
+    }
+
     function stakesDetailedOf(address investor)
         public
         view
         returns (uint256[] memory)
     {
-        uint256[] memory stakes = new uint256[](_stakesByAccount[investor].length);
+        uint256[] memory stakes = new uint256[](_stakesByAccount[investor].length*2);
         for (uint i = 0; i < _stakesByAccount[investor].length; i ++){
-            stakes[i*2] = _stakes[_stakesByAccount[investor][i]].decimals;
+            stakes[i*2] = _tokenDecimals[_stakes[_stakesByAccount[investor][i]].token];
             stakes[i*2 + 1] = _stakes[_stakesByAccount[investor][i]].amount;
         }
         return stakes;
@@ -176,13 +194,18 @@ contract LaunchPool is Ownable {
         return _accountsStakeCount;
     }
 
-    function updateName(string memory name_) external onlyOwner {
+    function updateName(string memory name_) external onlySponsor {
         name = name_;
     }
 
-    function updateMetadata(string memory _hash) external onlyOwner {
+    function updateMetadata(string memory _hash) external onlySponsor {
         metadata = _hash;
     }
+
+    function open() external onlySponsor isInitialized {
+        // TODO Define rules to open launch pool
+        stage = Stages.Staking;
+	}
 
     /** @dev This allows you to stake some ERC20 token. Make sure
      * You `ERC20.approve` to `LaunchPool` contract before you stake.
@@ -208,7 +231,6 @@ contract LaunchPool is Ownable {
 
         s.investor = msg.sender;
         s.token = token;
-        s.decimals = 0;
         s.amount = amount;
 
         _stakesByAccount[msg.sender].push(_stakesCount);
@@ -237,20 +259,20 @@ contract LaunchPool is Ownable {
         emit Unstaked(globalId, msg.sender, _stake.token, _stake.amount);
     }
 
-    function pause() external onlyOwner isStaking {
+    function pause() external onlySponsor isStaking {
         // TODO Define rules to pause
         stage = Stages.Paused;
 	}
-    function unpause() external onlyOwner isPaused {
+    function unpause() external onlySponsor isPaused {
         // TODO Define rules to unpause
         stage = Stages.Staking;
 	}
-    function finalize() external onlyOwner isConcluded {
+    function finalize() external onlySponsor isConcluded {
         // TODO Define rules to finalize / end timestamp? / total staked?
         // TODO Deploy tokens
 		stage = Stages.Finalized;
 	}
-    function withdrawStakes(address token) external onlyOwner isFinalized {
+    function withdrawStakes(address token) external onlySponsor isFinalized {
         // TODO Define rules to owner withdraw tokens / finalized?
         InterfaceToken instance = InterfaceToken(token);
         uint256 tokenBalance = instance.balanceOf(address(this));

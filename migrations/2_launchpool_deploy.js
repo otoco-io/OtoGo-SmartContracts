@@ -9,7 +9,7 @@ module.exports = async function (deployer, network) {
   const poolInstance = await LaunchPool.deployed();
   await deployProxy(PoolFactory, [poolInstance.address], { deployer });
   if (network == 'development'){
-    await deployer.deploy(LaunchToken, 'Test DAI', 'DAI', 1000000);
+    await deployer.deploy(LaunchToken, 'Test DAI', 'DAI', (10*(10**18)).toString());
     const tokenInstance = await LaunchToken.deployed();
     // await poolInstance.initialize(
     //   [tokenInstance.address],
