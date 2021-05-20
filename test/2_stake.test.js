@@ -10,32 +10,34 @@ contract('Stake Tests', async (accounts) => {
     // Deploy token
     this.factory = await PoolFactory.deployed();
     this.token = await LaunchToken.deployed();
+    this.shares = await LaunchToken.new('Token Shares', 'SHAR', web3.utils.toWei('10000000','ether'));
   });
  
   it('Deploy a new launch pool', async function () {
+
     const poolAddress = await this.factory.createLaunchPool(
       [this.token.address],
-      [web3.utils.toWei('100','ether'),
+      [
+      web3.utils.toWei('100','ether'),
       web3.utils.toWei('5000000','ether'),
       0,
-      parseInt(Date.now()*0.001) + 1000],
-      'Test Pool',
+      parseInt(Date.now()*0.001) + 1000,
+      10
+      ],
       'QmXE83PeG8xq8sT6GdeoYaAVVozAcJ4dN7xVCLuehDxVb1',
+      this.shares.address,
+      0
     )
-    // console.log(JSON.stringify(poolAddress));
 
     this.pool = await LaunchPool.at(poolAddress.logs[0].args.pool);
-    expect(await this.pool.name()).to.equal("Test Pool");
     expect(await this.pool.metadata()).to.equal("QmXE83PeG8xq8sT6GdeoYaAVVozAcJ4dN7xVCLuehDxVb1");
   });
 
   it ('Stake launch pool', async function () {
     expect((await this.pool.stage()).toString()).to.be.equals('1');
-    await this.pool.open();
-    expect((await this.pool.stage()).toString()).to.be.equals('2');
-    await this.token.transfer(accounts[1], (2*(10**18)).toString());
-    await this.token.approve(this.pool.address, (2*(10**18)).toString(), {from:accounts[1]});
-    await this.pool.stake(this.token.address, (1*(10**18)).toString(), {from:accounts[1]});
+    await this.token.transfer(accounts[1], web3.utils.toWei('2','ether'));
+    await this.token.approve(this.pool.address, (web3.utils.toWei('2','ether')), {from:accounts[1]});
+    await this.pool.stake(this.token.address, (web3.utils.toWei('1','ether')), {from:accounts[1]});
     var stakes = await this.pool.stakesOf(accounts[0]);
     expect(stakes).to.be.an('array');
     expect(stakes.length).to.be.equals(0);
@@ -47,7 +49,7 @@ contract('Stake Tests', async (accounts) => {
       console.log(e.toString())
     });
     var balance = await this.token.balanceOf(accounts[1]);
-    expect(balance.toString()).to.be.equals((1*(10**18)).toString());
+    expect(balance.toString()).to.be.equals(web3.utils.toWei('1','ether'));
   });
 
   it ('Unstake launch pool', async function () {
@@ -55,8 +57,8 @@ contract('Stake Tests', async (accounts) => {
     var stakes = await this.pool.stakesOf(accounts[1]);
     expect(stakes.length).to.be.equals(1);
     balance = await this.token.balanceOf(accounts[1]);
-    expect(balance.toString()).to.be.equals((2*(10**18)).toString());
-    stakes = await this.pool.stakesDetailedOf(accounts[1]);
+    expect(balance.toString()).to.be.equals(web3.utils.toWei('2','ether'));
+    stakes = await this.pool.stakesDetailedOf(accounts[0]);
     stakes.forEach(e => {
       console.log(e.toString())
     });

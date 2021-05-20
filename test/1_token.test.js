@@ -11,6 +11,6 @@ contract('Token Tests', async (accounts) => {
  
   it('First Wallet must have all tokens.', async function () {
     let balance = await this.tokenInstance.balanceOf(accounts[0]);
-    expect(balance.toString()).to.equal("10000000000000000000");
+    expect(balance.toString()).to.equal(web3.utils.toWei('100000000','ether'));
   });
 })
