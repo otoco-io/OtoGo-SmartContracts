@@ -9,8 +9,8 @@ contract('Stake Tests', async (accounts) => {
   before(async function () {
     // Deploy token
     this.factory = await PoolFactory.deployed();
-    this.token = await LaunchToken.deployed();
-    this.shares = await LaunchToken.new('Token Shares', 'SHAR', web3.utils.toWei('10000000','ether'));
+    this.token = await LaunchToken.new('Test DAI', 'DAI', web3.utils.toWei('100000000','ether'), 18);
+    this.shares = await LaunchToken.new('Token Shares', 'SHAR', web3.utils.toWei('10000000','ether'), 18);
   });
  
   it('Deploy a new launch pool', async function () {

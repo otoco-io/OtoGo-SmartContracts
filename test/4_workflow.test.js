@@ -22,7 +22,7 @@ contract('Stake Tests', async (accounts) => {
       web3.utils.toWei('100','ether'),
       web3.utils.toWei('2000000','ether'),
       0,
-      parseInt(Date.now()*0.001) + 10,
+      parseInt(Date.now()*0.001) + 2,
       10
       ],
       'QmXE83PeG8xq8sT6GdeoYaAVVozAcJ4dN7xVCLuehDxVb1',
@@ -72,14 +72,12 @@ contract('Stake Tests', async (accounts) => {
     await this.pool.stake(this.token2.address, web3.utils.toWei('400000','mwei'), {from:accounts[4]});
     await this.pool.stake(this.token2.address, web3.utils.toWei('400000','mwei'), {from:accounts[5]});
     await this.pool.stake(this.token2.address, web3.utils.toWei('400000','mwei'), {from:accounts[6]});
-    await this.pool.unstake(0, {from:accounts[3]});
-    await this.pool.unstake(0, {from:accounts[5]});
     var stakes = await this.pool.stakesList();
     expect(stakes).to.be.an('array');
     expect(stakes[0].toString()).to.be.equals(web3.utils.toWei('400000'));
-    expect(stakes[1].toString()).to.be.equals(web3.utils.toWei('0'));
+    expect(stakes[1].toString()).to.be.equals(web3.utils.toWei('400000'));
     expect(stakes[2].toString()).to.be.equals(web3.utils.toWei('400000'));
-    expect(stakes[3].toString()).to.be.equals(web3.utils.toWei('0'));
+    expect(stakes[3].toString()).to.be.equals(web3.utils.toWei('400000'));
     expect(stakes[4].toString()).to.be.equals(web3.utils.toWei('400000'));
   });
 
@@ -110,16 +108,15 @@ contract('Stake Tests', async (accounts) => {
     console.log('BALANCE 4',balance4.toString());
     console.log('BALANCE 5',balance5.toString());
     console.log('BALANCE 6',balance6.toString());
-    expect(balance2.gt(balance4)).to.be.true;
-    expect(balance4.gt(balance6)).to.be.true;
-    expect(balance6.gt(balance3)).to.be.true;
-    // LAST comparision is between unstaked
-    expect(balance3.eq(balance5)).to.be.true;
+    expect(balance2.gt(balance3)).to.be.true;
+    expect(balance3.gt(balance4)).to.be.true;
+    expect(balance4.gt(balance5)).to.be.true;
+    expect(balance5.gt(balance6)).to.be.true;
   });
 })
 
 function wait() {
   return new Promise((resolve) => {
-    setTimeout(resolve, 10000);
+    setTimeout(resolve(), 50000);
   });
 }

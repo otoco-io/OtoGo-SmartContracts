@@ -131,6 +131,7 @@ contract LaunchPool {
         );
         // Store token allowance and treir decimals to easy normalize
         for (uint i = 0; i<allowedTokens.length; i++) {
+            require(InterfaceToken(allowedTokens[i]).decimals() <= 18, 'Token allowed has more than 18 decimals');
             _tokenDecimals[allowedTokens[i]] = InterfaceToken(allowedTokens[i]).decimals();
             _allowedTokens[allowedTokens[i]] = true;
             _tokenList.push(allowedTokens[i]);
@@ -205,9 +206,10 @@ contract LaunchPool {
         _;
     }
 
-    modifier hasMaxStakeReached(uint256 amount) {
+    modifier hasMaxStakeReached(uint256 amount, address token) {
+        // The multiplications allow prevent that tokens with less than 18 decimals pass through
         require(
-            _stakesTotal + amount <= _stakesMax,
+            _stakesTotal + amount*(10**(18-_tokenDecimals[token])) <= _stakesMax,
             "Maximum staked amount exceeded"
         );
         _;
@@ -313,7 +315,7 @@ contract LaunchPool {
         external
         isStaking
         isTokenAllowed(token)
-        hasMaxStakeReached(amount)
+        hasMaxStakeReached(amount, token)
     {
         // If the transfer fails, we revert and don't record the amount.
         require(
@@ -330,10 +332,11 @@ contract LaunchPool {
 
         s.investor = msg.sender;
         s.token = token;
-        s.amount = amount;
+        // Convert any token amount that has less than 18 decimals to 18
+        s.amount = amount*(10**(18-_tokenDecimals[token]));
 
+        _stakesTotal += s.amount;
         _stakesByAccount[msg.sender].push(_stakesCount);
-        _stakesTotal += amount;
         emit Staked(_stakesCount, msg.sender, token, amount);
         _stakesCount += 1;
     }
@@ -357,7 +360,11 @@ contract LaunchPool {
         TokenStake memory _stake = _stakes[globalId];
         require(_stake.amount > 0, "Stake already unstaked");
         require(
-            InterfaceToken(_stake.token).transfer(msg.sender, _stake.amount),
+            // In case of 6 decimals (USDC, USDC, etc.) tokens need to be converted back.
+            InterfaceToken(_stake.token).transfer(
+                msg.sender,
+                _stake.amount/(10**(18-_tokenDecimals[_stake.token]))
+            ),
             "Could not transfer stake back to the investor"
         );
 
@@ -401,14 +408,15 @@ contract LaunchPool {
             // TODO Make this gasLeft calculation more precise
             if (gasleft() < 100000) break;
             // In case that stake has amount 0, it could be skipped
-            if (_stakes[_stakesCalculated].amount == 0) continue;
-            _stakes[_stakesCalculated].shares = curve.getShares(
-                _stakesMax,
-                _stakesCalculatedBalance,
-                _stakes[_stakesCalculated].amount,
-                _curveReducer
-            );
-            _stakesCalculatedBalance += _stakes[_stakesCalculated].amount;
+            if (_stakes[_stakesCalculated].amount > 0){
+                _stakes[_stakesCalculated].shares = curve.getShares(
+                    _stakesMax,
+                    _stakesCalculatedBalance,
+                    _stakes[_stakesCalculated].amount,
+                    _curveReducer
+                );
+                _stakesCalculatedBalance += _stakes[_stakesCalculated].amount;
+            }
             _stakesCalculated++;
         }
         if (_stakesCalculated >= _stakesCount) {
@@ -436,17 +444,18 @@ contract LaunchPool {
             if (gasleft() < 100000) break;
             // In case that stake has amount 0, it could be skipped
             _stake = _stakes[_stakesDistributed];
-            if (_stake.amount == 0) continue;
-            token.transfer(_stake.investor, _stake.shares);
-            // Zero amount and shares to not be distribute again same stake
-            emit Distributed(
-                _stakesDistributed,
-                _stake.investor,
-                _stake.amount,
-                _stake.shares
-            );
-            _stakes[_stakesDistributed].amount = 0;
-            _stakes[_stakesDistributed].shares = 0;
+            if (_stake.amount > 0){
+                token.transfer(_stake.investor, _stake.shares);
+                // Zero amount and shares to not be distribute again same stake
+                emit Distributed(
+                    _stakesDistributed,
+                    _stake.investor,
+                    _stake.amount,
+                    _stake.shares
+                );
+                _stakes[_stakesDistributed].amount = 0;
+                _stakes[_stakesDistributed].shares = 0;
+            }
             _stakesDistributed++;
         }
         if (_stakesDistributed >= _stakesCount) {

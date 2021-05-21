@@ -50,10 +50,10 @@ contract LaunchToken is Context, IERC20 {
      * All three of these values are immutable: they can only be set once during
      * construction.
      */
-    constructor (string memory name_, string memory symbol_, uint256 supply_) {
+    constructor (string memory name_, string memory symbol_, uint256 supply_, uint8 decimals_) {
         _name = name_;
         _symbol = symbol_;
-        _decimals = 18;
+        _decimals = decimals_;
         _totalSupply = supply_;
         _balances[msg.sender] = _totalSupply;
     }

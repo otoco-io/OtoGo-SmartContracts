@@ -11,7 +11,4 @@ module.exports = async function (deployer, network) {
   const curveInstance = await LaunchCurve.deployed();
   const poolInstance = await LaunchPool.deployed();
   await deployProxy(PoolFactory, [poolInstance.address, curveInstance.address], { deployer });
-  if (network == 'development'){
-    await deployer.deploy(LaunchToken, 'Test DAI', 'DAI', web3.utils.toWei('100000000','ether'));
-  }
 };
