@@ -113,6 +113,17 @@ contract('Stake Tests', async (accounts) => {
     expect(balance4.gt(balance5)).to.be.true;
     expect(balance5.gt(balance6)).to.be.true;
   });
+
+  it ('Withdraw stakes from sponsor', async function () {
+    let balanceBefore = await this.token.balanceOf(accounts[0]);
+    await this.pool.withdrawStakes(this.token.address);
+    let balanceAfter = await this.token.balanceOf(accounts[0]);
+    expect(balanceBefore.lt(balanceAfter)).to.be.true;
+    balanceBefore = await this.token2.balanceOf(accounts[0]);
+    await this.pool.withdrawStakes(this.token2.address);
+    balanceAfter = await this.token2.balanceOf(accounts[0]);
+    expect(balanceBefore.lt(balanceAfter)).to.be.true;
+  });
 })
 
 function wait() {

@@ -115,7 +115,13 @@ contract('Stake Tests', async (accounts) => {
     expect(balance6.gt(balance3)).to.be.true;
     // LAST comparision is between unstaked
     expect(balance3.eq(balance5)).to.be.true;
+    balance3 = await this.token.balanceOf(accounts[3]);
+    balance5 = await this.token2.balanceOf(accounts[5]);
+    expect(balance3.toString()).to.equal(web3.utils.toWei('1000000','ether'));
+    expect(balance5.toString()).to.equal(web3.utils.toWei('1000000','mwei'));
   });
+
+  
 })
 
 function wait() {

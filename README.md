@@ -6,13 +6,15 @@ This project consists on a Factory Contract that deploys customized Launch pools
 
 #### Pool Lifetime
 
-- NonInitialized - First stage of the launch pool before initialized, since it's a clone, isn't possible to use constructor functions for a clone, in this case we use the "initialize" function of the new Launch Pool to set its parameters.
-- Initialized - Right after a Launch Pool is initialized the stake/unstake is defined by values "_startTimestamp" and "_endTimestamp". If _startTimestamp isn't reached, no action could be taken by investors. Once _startTimestamp is reached, Investors could Stake and Unstake freely. Once _endTimestamp is reached, only new Stakes could be created in case still have some space for it.
-- Paused - Paused stage has to be triggered by Sponsor in case of any problem occurs, once paused, all staking/unstaking is not allowed.
-- Calculating - Once _endTimestamp is reached, the sponsor needs to call "lock" function. Once called, lock function will lead to Calculation stage. In this stage, Sponsor are allowe to trigger "calculateSharesChunk" to calculate how much shares each stake will receive in return, the shares is calculated as long has gasLeft > 100000 on the transaction, once has no gasLeft enough, the contract stops calculation on the current index, and the function needs to be called again, this should repeat until all investor has their shares calculated.
-- Distributing - Once all shares is calculates, the contract automatically trigger the stage Distributing. At this stage, sponsor should trigger "distributeSharesChunk" on the smart contract transferring all calculated shares to respective investors. This happens the same way as calculations, the shares is distributed as long has gasLeft > 100000 on the transaction, once has no gasLeft enough, the contract stops distribution on the current index, and the function needs to be called again, this should repeat until all investor has their shares distributed.
-- Finalized - Once the last share is distributed, the previous function automatically triggers Finalized stage. At this stage, the only function that could be triggered by the Sponsor is "withdrawStakes". Doing that, Sponsor is allowed to withdraw all staked tokens by the investors.
-- Aborted - Once at some moment of the launch pool, in case sponsor call "abort" function. The only function that could be called in launch pool is the "unstake" function. So each investor could retrieve their staked tokens.
+- **NonInitialized** - First stage of the launch pool before initialized, since it's a clone, isn't possible to use constructor functions for a clone, in this case we use the "initialize" function of the new Launch Pool to set its parameters.
+- **Initialized** - Right after a Launch Pool is initialized the stake/unstake is defined by values "_startTimestamp" and "_endTimestamp". If _startTimestamp isn't reached, no action could be taken by investors. Once _startTimestamp is reached, Investors could Stake and Unstake freely. Once _endTimestamp is reached, only new Stakes could be created in case still have some space for it.
+- **Paused** - Paused stage has to be triggered by Sponsor in case of any problem occurs, once paused, all staking/unstaking is not allowed.
+- **Calculating** - Once _endTimestamp is reached, the sponsor needs to call "lock" function. Once called, lock function will lead to Calculation stage. In this stage, Sponsor are allowe to trigger "calculateSharesChunk" to calculate how much shares each stake will receive in return, the shares is calculated as long has gasLeft > 100000 on the transaction, once has no gasLeft enough, the contract stops calculation on the current index, and the function needs to be called again, this should repeat until all investor has their shares calculated.
+- **Distributing** - Once all shares is calculates, the contract automatically trigger the stage Distributing. At this stage, sponsor should trigger "distributeSharesChunk" on the smart contract transferring all calculated shares to respective investors. This happens the same way as calculations, the shares is distributed as long has gasLeft > 100000 on the transaction, once has no gasLeft enough, the contract stops distribution on the current index, and the function needs to be called again, this should repeat until all investor has their shares distributed.
+- **Finalized** - Once the last share is distributed, the previous function automatically triggers Finalized stage. At this stage, the only function that could be triggered by the Sponsor is "withdrawStakes". Doing that, Sponsor is allowed to withdraw all staked tokens by the investors.
+- **Aborted** - Once at some moment of the launch pool, in case sponsor call "abort" function. The only function that could be called in launch pool is the "unstake" function. So each investor could retrieve their staked tokens.
+
+![Otogo Launch Pool Lifetime](./docs/otogo-lifetime.png)
 
 ## Installation
 
@@ -55,7 +57,7 @@ truffle test
 - Investor - The user who stake/unstake some value on launch pool and receive some shares related to the project on launch pool is concluded.
 
 
-## References 
+## References:
 
 #### Liquidity Pool And DAOs
 [Balancer Liquidity Pool](https://medium.com/balancer-protocol/building-liquidity-into-token-distribution-a49d4286e0d4)
