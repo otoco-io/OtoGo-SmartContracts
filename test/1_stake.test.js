@@ -22,7 +22,8 @@ contract('Stake Tests', async (accounts) => {
       web3.utils.toWei('5000000','ether'),
       0,
       parseInt(Date.now()*0.001) + 1000,
-      10
+      10,
+      1000
       ],
       'QmXE83PeG8xq8sT6GdeoYaAVVozAcJ4dN7xVCLuehDxVb1',
       this.shares.address,

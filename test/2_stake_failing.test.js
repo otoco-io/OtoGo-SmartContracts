@@ -6,7 +6,7 @@ const web3 = require('web3');
 const { expect } = require('chai');
 
 // Start test block
-contract('Stake Tests', async (accounts) => {
+contract('Stake tests that should fail', async (accounts) => {
   before(async function () {
     // Deploy token
     this.factory = await PoolFactory.deployed();
@@ -22,7 +22,8 @@ contract('Stake Tests', async (accounts) => {
       web3.utils.toWei('5000000','ether'),
       0,
       parseInt(Date.now()*0.001) + 1000,
-      10
+      10,
+      10000
       ],
       'QmXE83PeG8xq8sT6GdeoYaAVVozAcJ4dN7xVCLuehDxVb1',
       this.shares.address,
@@ -38,6 +39,7 @@ contract('Stake Tests', async (accounts) => {
     expect(balance.toString()).to.be.equals("0");
     try {
       await this.pool.stake(this.token.address, web3.utils.toWei('1','ether'), {from:accounts[2]});
+      expect(false).to.be.true; // Should not pass here
     } catch (err) {
       expect(err.reason).to.be.equals('ERC20: transfer amount exceeds balance');
     }
@@ -49,6 +51,7 @@ contract('Stake Tests', async (accounts) => {
     expect(balance.toString()).to.be.equals(web3.utils.toWei('2','ether'));
     try { 
       await this.pool.stake(this.token.address, web3.utils.toWei('1','ether'), {from:accounts[2]});
+      expect(false).to.be.true; // Should not pass here
     } catch (err) {
       expect(err.reason).to.be.equals('ERC20: transfer amount exceeds allowance');
     }
@@ -59,8 +62,19 @@ contract('Stake Tests', async (accounts) => {
     await this.pool.stake(this.token.address, web3.utils.toWei('1','ether'), {from:accounts[2]});
     try { 
       await this.pool.unstake(2, {from:accounts[2]});
+      expect(false).to.be.true; // Should not pass here
     } catch (err) {
       expect(err.reason).to.be.equals('Stake index out of bounds');
+    }
+  });
+
+  it ('Try to stake below minimum amount allowed', async function () {
+    await this.token.approve(this.pool.address, 1000, {from:accounts[2]});
+    try { 
+      await this.pool.stake(this.token.address, 1000, {from:accounts[2]});
+      expect(false).to.be.true; // Should not pass here
+    } catch (err) {
+      expect(err.reason).to.be.equals('Stake below minimum amount');
     }
   });
 
@@ -68,6 +82,7 @@ contract('Stake Tests', async (accounts) => {
     await this.pool.unstake(0, {from:accounts[2]});
     try { 
       await this.pool.unstake(0, {from:accounts[2]});
+      expect(false).to.be.true; // Should not pass here
     } catch (err) {
       expect(err.reason).to.be.equals('Stake already unstaked');
     }

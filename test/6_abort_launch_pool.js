@@ -5,7 +5,7 @@ const web3 = require('web3');
 const { expect } = require('chai');
 
 // Start test block
-contract('Lifetime with Stake and Unstake, different decimals', async (accounts) => {
+contract('Abort launch pool tests', async (accounts) => {
   before(async function () {
     // Deploy token
     this.factory = await PoolFactory.deployed();
@@ -84,44 +84,62 @@ contract('Lifetime with Stake and Unstake, different decimals', async (accounts)
     expect(stakes[4].toString()).to.be.equals(web3.utils.toWei('400000'));
   });
 
-  it ('Wait 10 seconds before close pool', async function () {
-    await wait();
-    await this.pool.lock();
-    let info = await this.pool.getGeneralInfos();
-    expect(info[7].toString()).to.equal('3');
+  it ('Sponsor tries to withdraw user stakes', async function () {
+    try { 
+      await this.pool.withdrawStakes(this.token.address);
+      expect(false).to.be.true; // Should not pass here
+    } catch (err) {
+      expect(err.reason).to.be.equals('Launch pool not finalized yet');
+    }
   });
 
-  it ('Calculate stake shares', async function () {
-    await this.pool.calculateSharesChunk();
+  it ('Abort launch pool', async function () {
+    await this.pool.abort();
     let info = await this.pool.getGeneralInfos();
-    expect(info[7].toString()).to.equal('4');
+    expect(info[7].toString()).to.equal('6');
   });
 
-  it ('Distribute shares to the investors', async function () {
-    await this.pool.distributeSharesChunk();
-    let info = await this.pool.getGeneralInfos();
-    expect(info[7].toString()).to.equal('5');
-    let balance2 = await this.shares.balanceOf(accounts[2]);
-    let balance3 = await this.shares.balanceOf(accounts[3]);
-    let balance4 = await this.shares.balanceOf(accounts[4]);
-    let balance5 = await this.shares.balanceOf(accounts[5]);
-    let balance6 = await this.shares.balanceOf(accounts[6]);
-    console.log('BALANCE 2',balance2.toString());
-    console.log('BALANCE 3',balance3.toString());
-    console.log('BALANCE 4',balance4.toString());
-    console.log('BALANCE 5',balance5.toString());
-    console.log('BALANCE 6',balance6.toString());
-    expect(balance2.gt(balance4)).to.be.true;
-    expect(balance4.gt(balance6)).to.be.true;
-    expect(balance6.gt(balance3)).to.be.true;
-    // LAST comparision is between unstaked
-    expect(balance3.eq(balance5)).to.be.true;
-    balance3 = await this.token.balanceOf(accounts[3]);
-    balance5 = await this.token2.balanceOf(accounts[5]);
+  it ('Sponsor tries to withdraw user stakes', async function () {
+    try { 
+      await this.pool.withdrawStakes(this.token.address);
+      expect(false).to.be.true; // Should not pass here
+    } catch (err) {
+      expect(err.reason).to.be.equals('Launch pool not finalized yet');
+    }
+  });
+
+  it ('Unstake all investor money', async function () {
+    await this.pool.unstake(0, {from:accounts[2]});
+    await this.pool.unstake(0, {from:accounts[4]});
+    await this.pool.unstake(0, {from:accounts[6]});
+    var stakes = await this.pool.stakesList();
+    expect(stakes).to.be.an('array');
+    expect(stakes[0].toString()).to.be.equals(web3.utils.toWei('0'));
+    expect(stakes[1].toString()).to.be.equals(web3.utils.toWei('0'));
+    expect(stakes[2].toString()).to.be.equals(web3.utils.toWei('0'));
+    expect(stakes[3].toString()).to.be.equals(web3.utils.toWei('0'));
+    expect(stakes[4].toString()).to.be.equals(web3.utils.toWei('0'));
+    let balance2 = await this.token.balanceOf(accounts[2]);
+    let balance3 = await this.token.balanceOf(accounts[3]);
+    let balance4 = await this.token2.balanceOf(accounts[4]);
+    let balance5 = await this.token2.balanceOf(accounts[5]);
+    let balance6 = await this.token2.balanceOf(accounts[6]);
+    // Verify balances
+    expect(balance2.toString()).to.equal(web3.utils.toWei('1000000','ether'));
     expect(balance3.toString()).to.equal(web3.utils.toWei('1000000','ether'));
+    expect(balance4.toString()).to.equal(web3.utils.toWei('1000000','mwei'));
     expect(balance5.toString()).to.equal(web3.utils.toWei('1000000','mwei'));
+    expect(balance6.toString()).to.equal(web3.utils.toWei('1000000','mwei'));
   });
-
+  
+  it ('Sponsor tries to withdraw user stakes', async function () {
+    try { 
+      await this.pool.withdrawStakes(this.token.address);
+      expect(false).to.be.true; // Should not pass here
+    } catch (err) {
+      expect(err.reason).to.be.equals('Launch pool not finalized yet');
+    }
+  });
 
 })
 

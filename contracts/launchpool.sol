@@ -12,7 +12,7 @@ interface InterfaceToken {
 }
 
 interface InterfaceCurve {
-    function getShares(uint256 supply, uint256 pool, uint256 stake, uint256 reducer) external returns(uint256);
+    function getShares(uint256 supply, uint256 pool, uint256 stake, uint256 reducer) external view returns(uint256);
 }
 
 contract LaunchPool {
@@ -41,6 +41,8 @@ contract LaunchPool {
     uint256 private _stakesTotal;
     // Prevent access elements bigger then stake size
     uint256 private _stakesCount;
+    // The minimum amount for a unique stake
+    uint256 private _stakeAmountMin;
     // 0 - Not Initialized - Not even set variables yet
     // 1 - Initialized
     //    Before Start Timestamp => Warm Up
@@ -51,7 +53,7 @@ contract LaunchPool {
     // 3 - Calculating - Bonus calculation finished, start distribution
     // 4 - Distributing - Finished distribution, start sponsor withdraw
     // 5 - Finalized - Allow sponsor withdraw
-    // 6 - Failed
+    // 6 - Aborted
     enum Stages {
         NotInitialized,
         Initialized,
@@ -124,6 +126,7 @@ contract LaunchPool {
         _startTimestamp = uintArgs[2];
         _endTimestamp = uintArgs[3];
         _curveReducer = uintArgs[4];
+        _stakeAmountMin = uintArgs[5];
         // Prevent stakes max never surpass Shares total supply
         require(
             InterfaceToken(_sharesAddress).totalSupply() >= _stakesMax,
@@ -271,17 +274,17 @@ contract LaunchPool {
     }
 
     /**
-     * @dev Amount of total staked from alls.
+     * @dev Get Stake shares for interface calculation.
      */
-    function stakesTotal() public view returns (uint256) {
-        return _stakesTotal;
+    function getStakeShares(uint256 amount, uint256 balance) public view returns (uint256) {
+        return InterfaceCurve(_curve).getShares(_stakesMax, balance, amount, _curveReducer);
     }
 
     /**
      * @dev Get general info about launch pool. Return Uint values
      */
     function getGeneralInfos() public view returns (uint256[] memory values) {
-        values = new uint256[](8);
+        values = new uint256[](9);
         values[0] = _startTimestamp;
         values[1] = _endTimestamp;
         values[2] = _stakesMin;
@@ -290,6 +293,7 @@ contract LaunchPool {
         values[5] = _stakesCount;
         values[6] = _curveReducer;
         values[7] = uint(stage);
+        values[8] = _stakeAmountMin;
         return values;
     }
 
@@ -326,14 +330,18 @@ contract LaunchPool {
             ),
             "Token transfer rejected"
         );
-
+        uint256 normalizedAmount = amount*(10**(18-_tokenDecimals[token]));
+        require(
+            normalizedAmount >= _stakeAmountMin,
+            "Stake below minimum amount"
+        );
         // Store stake id after insert it to the queue
         TokenStake storage s = _stakes[_stakesCount];
 
         s.investor = msg.sender;
         s.token = token;
         // Convert any token amount that has less than 18 decimals to 18
-        s.amount = amount*(10**(18-_tokenDecimals[token]));
+        s.amount = normalizedAmount;
 
         _stakesTotal += s.amount;
         _stakesByAccount[msg.sender].push(_stakesCount);
@@ -426,10 +434,6 @@ contract LaunchPool {
 
     // ***** DISTRIBUTING *****
 
-    function claimShares() external isDistributing {
-        // TODO Define how tokens/shares could be claimed
-    }
-
     /** @dev Distribute all shares calculated for each investor.
      * Shares are distributed in order and skipped in case of has amount 0(unstaked).
      * In case of low gas, the distribution stops at the current stake index.
@@ -465,6 +469,8 @@ contract LaunchPool {
 
     // **** FINALIZED *****
 
+    /** @dev Sponsor withdraw stakes after finalized pool.
+    **/
     function withdrawStakes(address token) external onlySponsor isFinalized {
         InterfaceToken instance = InterfaceToken(token);
         uint256 tokenBalance = instance.balanceOf(address(this));

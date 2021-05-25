@@ -14,7 +14,7 @@ contract('Stake Tests', async (accounts) => {
     this.shares = await LaunchToken.new('Token Shares', 'SHAR', web3.utils.toWei('10000000','ether'), 18);
   });
 
-  it('Deploy a new launch pool', async function () {
+  it('Testing pool lifetime, stake, unstake, withdraw.', async function () {
 
     const poolAddress = await this.factory.createLaunchPool(
       [this.token.address, this.token2.address],
@@ -23,7 +23,8 @@ contract('Stake Tests', async (accounts) => {
       web3.utils.toWei('2000000','ether'),
       0,
       parseInt(Date.now()*0.001) + 2,
-      10
+      10,
+      100
       ],
       'QmXE83PeG8xq8sT6GdeoYaAVVozAcJ4dN7xVCLuehDxVb1',
       this.shares.address,
