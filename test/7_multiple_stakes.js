@@ -32,7 +32,7 @@ contract('Multiple stakes', async (accounts) => {
     )
 
     this.pool = await LaunchPool.at(poolAddress.logs[0].args.pool);
-    await this.shares.transfer(this.pool.address, web3.utils.toWei('2000000','ether'));
+    await this.shares.approve(this.pool.address, web3.utils.toWei('2000000','ether'));
     expect(await this.pool.metadata()).to.equal("QmXE83PeG8xq8sT6GdeoYaAVVozAcJ4dN7xVCLuehDxVb1");
   });
 

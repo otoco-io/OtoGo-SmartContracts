@@ -3,16 +3,36 @@ pragma solidity 0.8.4;
 
 interface InterfaceToken {
     function decimals() external view returns (uint8);
+
     function totalSupply() external view returns (uint256);
+
     function balanceOf(address account) external view returns (uint256);
-    function transfer(address recipient, uint256 amount) external returns (bool);
-    function allowance(address owner, address spender) external view returns (uint256);
+
+    function transfer(address recipient, uint256 amount)
+        external
+        returns (bool);
+
+    function allowance(address owner, address spender)
+        external
+        view
+        returns (uint256);
+
     function approve(address spender, uint256 amount) external returns (bool);
-    function transferFrom(address sender, address recipient, uint256 amount) external returns (bool);
+
+    function transferFrom(
+        address sender,
+        address recipient,
+        uint256 amount
+    ) external returns (bool);
 }
 
 interface InterfaceCurve {
-    function getShares(uint256 supply, uint256 pool, uint256 stake, uint256 reducer) external view returns(uint256);
+    function getShares(
+        uint256 supply,
+        uint256 pool,
+        uint256 stake,
+        uint256 reducer
+    ) external view returns (uint256);
 }
 
 contract LaunchPool {
@@ -23,7 +43,7 @@ contract LaunchPool {
     /*
      * Address of the token that was previously deployed by sponsor
      * _stakeMax must never surpass total token supply
-    */
+     */
     address private _token;
     // Price curve distribution contract address
     address private _curve;
@@ -72,12 +92,12 @@ contract LaunchPool {
     mapping(address => uint8) private _tokenDecimals;
 
     struct TokenStake {
-		address investor;
+        address investor;
         address token;
-		uint256 amount;
+        uint256 amount;
         // Result bonus calculated based on curve and reducer
         uint256 shares;
-	}
+    }
 
     // Stakes struct mapping
     mapping(uint256 => TokenStake) private _stakes;
@@ -92,17 +112,25 @@ contract LaunchPool {
 
     // **** EVENTS ****
 
-    event Staked(uint256 index, address indexed investor, address indexed token, uint256 amount);
+    event Staked(
+        uint256 index,
+        address indexed investor,
+        address indexed token,
+        uint256 amount
+    );
     event Unstaked(
         uint256 index,
         address indexed investor,
         address indexed token,
         uint256 amount
     );
-    event Distributed(uint256 index, address indexed investor, uint256 amount, uint256 shares);
-    event MetadataUpdated(
-        string indexed newHash
+    event Distributed(
+        uint256 index,
+        address indexed investor,
+        uint256 amount,
+        uint256 shares
     );
+    event MetadataUpdated(string indexed newHash);
 
     // **** CONSTRUCTOR ****
 
@@ -115,7 +143,7 @@ contract LaunchPool {
         address _curveAddress
     ) public {
         // Must not be initialized
-        require(stage == Stages.NotInitialized, 'Contract already Initialized');
+        require(stage == Stages.NotInitialized, "Contract already Initialized");
         // Allow at most 3 coins
         require(
             allowedTokens.length >= 1 && allowedTokens.length <= 3,
@@ -133,9 +161,13 @@ contract LaunchPool {
             "Shares token has not enough supply for staking distribution"
         );
         // Store token allowance and treir decimals to easy normalize
-        for (uint i = 0; i<allowedTokens.length; i++) {
-            require(InterfaceToken(allowedTokens[i]).decimals() <= 18, 'Token allowed has more than 18 decimals');
-            _tokenDecimals[allowedTokens[i]] = InterfaceToken(allowedTokens[i]).decimals();
+        for (uint256 i = 0; i < allowedTokens.length; i++) {
+            require(
+                InterfaceToken(allowedTokens[i]).decimals() <= 18,
+                "Token allowed has more than 18 decimals"
+            );
+            _tokenDecimals[allowedTokens[i]] = InterfaceToken(allowedTokens[i])
+                .decimals();
             _allowedTokens[allowedTokens[i]] = true;
             _tokenList.push(allowedTokens[i]);
         }
@@ -149,21 +181,24 @@ contract LaunchPool {
     // **** MODIFIERS ****
 
     modifier isTokenAllowed(address _tokenAddr) {
-        require(
-            _allowedTokens[_tokenAddr],
-            "Cannot deposit that token"
-        );
+        require(_allowedTokens[_tokenAddr], "Cannot deposit that token");
         _;
     }
 
     modifier isInitialized() {
-        require(block.timestamp > _startTimestamp, "Launch Pool has not started");
+        require(
+            block.timestamp > _startTimestamp,
+            "Launch Pool has not started"
+        );
         require(stage == Stages.Initialized, "Launch Pool is not Initialized");
         _;
     }
 
     modifier isStaking() {
-        require(block.timestamp > _startTimestamp, "Launch Pool has not started");
+        require(
+            block.timestamp > _startTimestamp,
+            "Launch Pool has not started"
+        );
         require(stage == Stages.Initialized, "Launch Pool is not staking");
         _;
     }
@@ -174,18 +209,27 @@ contract LaunchPool {
     }
 
     modifier isConcluded() {
-        require(block.timestamp >= _endTimestamp, "LaunchPool end timestamp not reached");
-        require(_stakesTotal >= _stakesMin, "LaunchPool not reached minimum stake");
+        require(
+            block.timestamp >= _endTimestamp,
+            "LaunchPool end timestamp not reached"
+        );
+        require(
+            _stakesTotal >= _stakesMin,
+            "LaunchPool not reached minimum stake"
+        );
         _;
     }
 
     modifier isStaked() {
-        require(block.timestamp >= _endTimestamp, "LaunchPool end timestamp not reached");
+        require(
+            block.timestamp >= _endTimestamp,
+            "LaunchPool end timestamp not reached"
+        );
         require(stage == Stages.Finalized, "LaunchPool is not finalized");
         _;
     }
 
-     modifier isCalculating() {
+    modifier isCalculating() {
         require(
             stage == Stages.Calculating,
             "Tokens are not yet ready to calculate"
@@ -202,17 +246,20 @@ contract LaunchPool {
     }
 
     modifier isFinalized() {
-        require(
-            stage == Stages.Finalized,
-            "Launch pool not finalized yet"
-        );
+        require(stage == Stages.Finalized, "Launch pool not finalized yet");
+        _;
+    }
+
+    modifier isAborted() {
+        require(stage == Stages.Aborted, "Launch Pool not aborted");
         _;
     }
 
     modifier hasMaxStakeReached(uint256 amount, address token) {
         // The multiplications allow prevent that tokens with less than 18 decimals pass through
         require(
-            _stakesTotal + amount*(10**(18-_tokenDecimals[token])) <= _stakesMax,
+            _stakesTotal + amount * (10**(18 - _tokenDecimals[token])) <=
+                _stakesMax,
             "Maximum staked amount exceeded"
         );
         _;
@@ -229,6 +276,7 @@ contract LaunchPool {
     function sponsor() public view virtual returns (address) {
         return _sponsor;
     }
+
     // Return the token list alllowed on launch pool
     function tokenList() public view returns (address[] memory) {
         return _tokenList;
@@ -246,10 +294,13 @@ contract LaunchPool {
         view
         returns (uint256[] memory)
     {
-        uint256[] memory stakes = new uint256[](_stakesByAccount[sponsor_].length*2);
-        for (uint i = 0; i < _stakesByAccount[sponsor_].length; i ++){
-            stakes[i*2] = _tokenDecimals[_stakes[_stakesByAccount[sponsor_][i]].token];
-            stakes[i*2 + 1] = _stakes[_stakesByAccount[sponsor_][i]].amount;
+        uint256[] memory stakes =
+            new uint256[](_stakesByAccount[sponsor_].length * 2);
+        for (uint256 i = 0; i < _stakesByAccount[sponsor_].length; i++) {
+            stakes[i * 2] = _tokenDecimals[
+                _stakes[_stakesByAccount[sponsor_][i]].token
+            ];
+            stakes[i * 2 + 1] = _stakes[_stakesByAccount[sponsor_][i]].amount;
         }
         return stakes;
     }
@@ -261,13 +312,9 @@ contract LaunchPool {
         return _stakesByAccount[sponsor_];
     }
 
-    function stakesList()
-        public
-        view
-        returns (uint256[] memory)
-    {
+    function stakesList() public view returns (uint256[] memory) {
         uint256[] memory stakes = new uint256[](_stakesCount);
-        for (uint i = 0; i < _stakesCount; i ++){
+        for (uint256 i = 0; i < _stakesCount; i++) {
             stakes[i] = _stakes[i].amount;
         }
         return stakes;
@@ -276,8 +323,18 @@ contract LaunchPool {
     /**
      * @dev Get Stake shares for interface calculation.
      */
-    function getStakeShares(uint256 amount, uint256 balance) public view returns (uint256) {
-        return InterfaceCurve(_curve).getShares(_stakesMax, balance, amount, _curveReducer);
+    function getStakeShares(uint256 amount, uint256 balance)
+        public
+        view
+        returns (uint256)
+    {
+        return
+            InterfaceCurve(_curve).getShares(
+                _stakesMax,
+                balance,
+                amount,
+                _curveReducer
+            );
     }
 
     /**
@@ -292,7 +349,7 @@ contract LaunchPool {
         values[4] = _stakesTotal;
         values[5] = _stakesCount;
         values[6] = _curveReducer;
-        values[7] = uint(stage);
+        values[7] = uint256(stage);
         values[8] = _stakeAmountMin;
         return values;
     }
@@ -300,7 +357,7 @@ contract LaunchPool {
     // **** INITIALIZED *****
 
     /** @dev Update metadata informations for launch pool
-    **/
+     **/
     function updateMetadata(string memory _hash) external onlySponsor {
         metadata = _hash;
     }
@@ -330,7 +387,7 @@ contract LaunchPool {
             ),
             "Token transfer rejected"
         );
-        uint256 normalizedAmount = amount*(10**(18-_tokenDecimals[token]));
+        uint256 normalizedAmount = amount * (10**(18 - _tokenDecimals[token]));
         require(
             normalizedAmount >= _stakeAmountMin,
             "Stake below minimum amount"
@@ -358,11 +415,17 @@ contract LaunchPool {
      * - `stakeId` The index of stake from a sender investor. Initiating at 0.
      */
     function unstake(uint256 stakeId) external {
-        require(stage == Stages.Initialized || stage == Stages.Aborted, "No Staking or Aborted stage.");
-        if (stage == Stages.Initialized){
+        require(
+            stage == Stages.Initialized || stage == Stages.Aborted,
+            "No Staking or Aborted stage."
+        );
+        if (stage == Stages.Initialized) {
             require(block.timestamp <= _endTimestamp, "Launch Pool is closed");
         }
-        require(_stakesByAccount[msg.sender].length > stakeId, "Stake index out of bounds");
+        require(
+            _stakesByAccount[msg.sender].length > stakeId,
+            "Stake index out of bounds"
+        );
 
         uint256 globalId = _stakesByAccount[msg.sender][stakeId];
         TokenStake memory _stake = _stakes[globalId];
@@ -371,7 +434,7 @@ contract LaunchPool {
             // In case of 6 decimals (USDC, USDC, etc.) tokens need to be converted back.
             InterfaceToken(_stake.token).transfer(
                 msg.sender,
-                _stake.amount/(10**(18-_tokenDecimals[_stake.token]))
+                _stake.amount / (10**(18 - _tokenDecimals[_stake.token]))
             ),
             "Could not transfer stake back to the investor"
         );
@@ -382,25 +445,25 @@ contract LaunchPool {
     }
 
     /** @dev This allows sponsor pause staking preventing investor to stake/unstake.
-    * Only called by sponsor.
-    **/
+     * Only called by sponsor.
+     **/
     function pause() external onlySponsor isStaking {
         stage = Stages.Paused;
-	}
+    }
 
     /** @dev Unpause launch pool returning back to staking/unstaking stage.
-    * Only called by sponsor.
-    **/
+     * Only called by sponsor.
+     **/
     function unpause() external onlySponsor isPaused {
         stage = Stages.Initialized;
-	}
+    }
 
     /** @dev Lock stakes and proceed to Calculating phase of launch pool.
      * Only called by sponsor.
-    **/
+     **/
     function lock() external onlySponsor isConcluded {
-		stage = Stages.Calculating;
-	}
+        stage = Stages.Calculating;
+    }
 
     // ***** CALCULATING ******
 
@@ -408,15 +471,15 @@ contract LaunchPool {
      * Shares are calculated in order and skipped in case of has amount 0(unstaked).
      * In case of low gas, the calculation stops at the current stake index.
      * Only called by sponsor.
-    **/
+     **/
     function calculateSharesChunk() external onlySponsor isCalculating {
         InterfaceCurve curve = InterfaceCurve(_curve);
-        while(_stakesCalculated < _stakesCount) {
+        while (_stakesCalculated < _stakesCount) {
             // Break while loop in case of lack of gas
             // TODO Make this gasLeft calculation more precise
             if (gasleft() < 100000) break;
             // In case that stake has amount 0, it could be skipped
-            if (_stakes[_stakesCalculated].amount > 0){
+            if (_stakes[_stakesCalculated].amount > 0) {
                 _stakes[_stakesCalculated].shares = curve.getShares(
                     _stakesMax,
                     _stakesCalculatedBalance,
@@ -438,18 +501,18 @@ contract LaunchPool {
      * Shares are distributed in order and skipped in case of has amount 0(unstaked).
      * In case of low gas, the distribution stops at the current stake index.
      * Only called by sponsor.
-    **/
+     **/
     function distributeSharesChunk() external onlySponsor isDistributing {
         InterfaceToken token = InterfaceToken(_token);
         TokenStake memory _stake;
-        while(_stakesDistributed < _stakesCount) {
+        while (_stakesDistributed < _stakesCount) {
             // Break while loop in case of lack of gas
             // TODO Make this gasLeft calculation more precise
             if (gasleft() < 100000) break;
             // In case that stake has amount 0, it could be skipped
             _stake = _stakes[_stakesDistributed];
-            if (_stake.amount > 0){
-                token.transfer(_stake.investor, _stake.shares);
+            if (_stake.amount > 0) {
+                token.transferFrom(_sponsor, _stake.investor, _stake.shares);
                 // Zero amount and shares to not be distribute again same stake
                 emit Distributed(
                     _stakesDistributed,
@@ -470,21 +533,19 @@ contract LaunchPool {
     // **** FINALIZED *****
 
     /** @dev Sponsor withdraw stakes after finalized pool.
-    **/
+     *  This could also be used to withdraw remain not used shared
+     **/
     function withdrawStakes(address token) external onlySponsor isFinalized {
         InterfaceToken instance = InterfaceToken(token);
         uint256 tokenBalance = instance.balanceOf(address(this));
-        instance.transfer(
-            msg.sender,
-            tokenBalance
-        );
+        instance.transfer(msg.sender, tokenBalance);
     }
 
-    // **** ABORTING & DEAD-MAN TRIGGER ****
+    // **** ABORTING ****
 
     /** @dev Abort launch pool and allow all investors to unstake their tokens.
-    * Only called by sponsor.
-    **/
+     * Only called by sponsor.
+     **/
     function abort() external onlySponsor {
         // TODO Define rules to allow abort pool
         stage = Stages.Aborted;
