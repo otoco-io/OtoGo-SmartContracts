@@ -24,7 +24,8 @@ contract('Stake Tests', async (accounts) => {
       0,
       parseInt(Date.now()*0.001) + 2,
       10,
-      100
+      100,
+      web3.utils.toWei('0.5','ether'),
       ],
       'QmXE83PeG8xq8sT6GdeoYaAVVozAcJ4dN7xVCLuehDxVb1',
       this.shares.address,
@@ -32,7 +33,7 @@ contract('Stake Tests', async (accounts) => {
     )
 
     this.pool = await LaunchPool.at(poolAddress.logs[0].args.pool);
-    await this.shares.approve(this.pool.address, web3.utils.toWei('2000000','ether'));
+    await this.shares.approve(this.pool.address, web3.utils.toWei('4000000','ether'));
     expect(await this.pool.metadata()).to.equal("QmXE83PeG8xq8sT6GdeoYaAVVozAcJ4dN7xVCLuehDxVb1");
   });
 

@@ -22,15 +22,15 @@ contract LaunchCurveExponential {
      * - `stake` The current stake to return the amount of tokens to return.
      * - `reducer` The reducerr factor to make curve less exponential. Recommended 1 to 400.
     **/
-    function getShares(uint256 supply, uint256 pool, uint256 stake, uint256 reducer) public view returns(uint256) {
+    function getShares(uint256 supply, uint256 pool, uint256 stake, uint256 reducer, uint256 minPrice) public view returns(uint256) {
         uint256 curve = (pool*pool).div(supply*100000*reducer);
-        uint256 unitPrice = curve+decimals;
+        uint256 unitPrice = curve+minPrice;
         return stake.mul(decimals).div(unitPrice);
     }
 
-    function getUnitPrice(uint256 supply, uint256 pool, uint256 reducer) public view returns(uint256) {
+    function getUnitPrice(uint256 supply, uint256 pool, uint256 reducer, uint256 minPrice) public pure returns(uint256) {
         uint256 curve = (pool*pool).div(reducer*100000*supply);
-        return curve+decimals;
+        return curve+minPrice;
     }
 
     function getCurve(uint256 supply, uint256 pool, uint256 reducer) public pure returns(uint256) {

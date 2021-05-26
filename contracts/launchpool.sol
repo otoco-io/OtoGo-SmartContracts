@@ -31,7 +31,8 @@ interface InterfaceCurve {
         uint256 supply,
         uint256 pool,
         uint256 stake,
-        uint256 reducer
+        uint256 reducer,
+        uint256 minPrice
     ) external view returns (uint256);
 }
 
@@ -49,6 +50,8 @@ contract LaunchPool {
     address private _curve;
     // Reducer used by curve dustribution
     uint256 private _curveReducer;
+    // Reducer used by curve dustribution
+    uint256 private _curveMinPrice;
     // Defines start timestamp for Pool opens
     uint256 private _startTimestamp;
     // Defines timestamp for Pool closes
@@ -155,9 +158,16 @@ contract LaunchPool {
         _endTimestamp = uintArgs[3];
         _curveReducer = uintArgs[4];
         _stakeAmountMin = uintArgs[5];
+        _curveMinPrice = uintArgs[6];
         // Prevent stakes max never surpass Shares total supply
         require(
-            InterfaceToken(_sharesAddress).totalSupply() >= _stakesMax,
+            InterfaceToken(_sharesAddress).totalSupply() >= InterfaceCurve(_curveAddress).getShares(
+                _stakesMax,
+                0,
+                _stakesMax,
+                _curveReducer,
+                _curveMinPrice
+            ),
             "Shares token has not enough supply for staking distribution"
         );
         // Store token allowance and treir decimals to easy normalize
@@ -333,7 +343,8 @@ contract LaunchPool {
                 _stakesMax,
                 balance,
                 amount,
-                _curveReducer
+                _curveReducer,
+                _curveMinPrice
             );
     }
 
@@ -484,7 +495,8 @@ contract LaunchPool {
                     _stakesMax,
                     _stakesCalculatedBalance,
                     _stakes[_stakesCalculated].amount,
-                    _curveReducer
+                    _curveReducer,
+                    _curveMinPrice
                 );
                 _stakesCalculatedBalance += _stakes[_stakesCalculated].amount;
             }
