@@ -34,6 +34,13 @@ interface InterfaceCurve {
         uint256 reducer,
         uint256 minPrice
     ) external view returns (uint256);
+
+    function getUnitPrice(
+        uint256 supply,
+        uint256 pool,
+        uint256 reducer,
+        uint256 minPrice
+    ) external view returns (uint256);
 }
 
 contract LaunchPool {
@@ -66,6 +73,8 @@ contract LaunchPool {
     uint256 private _stakesCount;
     // The minimum amount for a unique stake
     uint256 private _stakeAmountMin;
+    // The maximum amount a single stake could have
+    uint256 private _stakeClamp;
     // 0 - Not Initialized - Not even set variables yet
     // 1 - Initialized
     //    Before Start Timestamp => Warm Up
@@ -159,15 +168,17 @@ contract LaunchPool {
         _curveReducer = uintArgs[4];
         _stakeAmountMin = uintArgs[5];
         _curveMinPrice = uintArgs[6];
+        _stakeClamp = uintArgs[7];
         // Prevent stakes max never surpass Shares total supply
         require(
-            InterfaceToken(_sharesAddress).totalSupply() >= InterfaceCurve(_curveAddress).getShares(
-                _stakesMax,
-                0,
-                _stakesMax,
-                _curveReducer,
-                _curveMinPrice
-            ),
+            InterfaceToken(_sharesAddress).totalSupply() >=
+                InterfaceCurve(_curveAddress).getShares(
+                    _stakesMax,
+                    0,
+                    _stakesMax,
+                    _curveReducer,
+                    _curveMinPrice
+                ),
             "Shares token has not enough supply for staking distribution"
         );
         // Store token allowance and treir decimals to easy normalize
@@ -265,6 +276,16 @@ contract LaunchPool {
         _;
     }
 
+    modifier hasStakeClamped(uint256 amount, address token) {
+        // The multiplications allow prevent that tokens with less than 18 decimals pass through
+        require(
+            amount * (10**(18 - _tokenDecimals[token])) <=
+                _stakeClamp,
+            "Stake maximum amount exceeded"
+        );
+        _;
+    }
+
     modifier hasMaxStakeReached(uint256 amount, address token) {
         // The multiplications allow prevent that tokens with less than 18 decimals pass through
         require(
@@ -350,9 +371,20 @@ contract LaunchPool {
 
     /**
      * @dev Get general info about launch pool. Return Uint values
+     * 0 - Pool start timestamp
+     * 1 - Pool end timestamp
+     * 2 - Minimum stakes for pool approval
+     * 3 - Total stake allowed by launch pool
+     * 4 - Sum of all stakes
+     * 5 - Stakes Count
+     * 6 - Curve Reducer value
+     * 7 - Current stage of launch pool
+     * 8 - Minimum amount allowed to stake
+     * 9 - Minimum price paid for a share
+     * 10 - Maximum price that investors will pay for a share
      */
     function getGeneralInfos() public view returns (uint256[] memory values) {
-        values = new uint256[](9);
+        values = new uint256[](11);
         values[0] = _startTimestamp;
         values[1] = _endTimestamp;
         values[2] = _stakesMin;
@@ -362,6 +394,8 @@ contract LaunchPool {
         values[6] = _curveReducer;
         values[7] = uint256(stage);
         values[8] = _stakeAmountMin;
+        values[9] = _curveMinPrice;
+        values[10] = _stakeClamp;
         return values;
     }
 
@@ -388,7 +422,13 @@ contract LaunchPool {
         isStaking
         isTokenAllowed(token)
         hasMaxStakeReached(amount, token)
+        hasStakeClamped(amount, token)
     {
+        uint256 normalizedAmount = amount * (10**(18 - _tokenDecimals[token]));
+        require(
+            normalizedAmount >= _stakeAmountMin,
+            "Stake below minimum amount"
+        );
         // If the transfer fails, we revert and don't record the amount.
         require(
             InterfaceToken(token).transferFrom(
@@ -397,11 +437,6 @@ contract LaunchPool {
                 amount
             ),
             "Token transfer rejected"
-        );
-        uint256 normalizedAmount = amount * (10**(18 - _tokenDecimals[token]));
-        require(
-            normalizedAmount >= _stakeAmountMin,
-            "Stake below minimum amount"
         );
         // Store stake id after insert it to the queue
         TokenStake storage s = _stakes[_stakesCount];
@@ -467,6 +502,12 @@ contract LaunchPool {
      **/
     function unpause() external onlySponsor isPaused {
         stage = Stages.Initialized;
+    }
+
+    /** @dev Extend staking period of the launch pool.
+     **/
+    function extendEndTimestamp(uint256 extension) external onlySponsor isStaking {
+        _endTimestamp += extension;
     }
 
     /** @dev Lock stakes and proceed to Calculating phase of launch pool.

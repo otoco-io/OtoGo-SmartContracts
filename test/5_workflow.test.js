@@ -19,13 +19,14 @@ contract('Lifetime with Stake and Unstake, different decimals', async (accounts)
     const poolAddress = await this.factory.createLaunchPool(
       [this.token.address, this.token2.address],
       [
-      web3.utils.toWei('100','ether'),
-      web3.utils.toWei('2000000','ether'),
+      web3.utils.toWei('100'),
+      web3.utils.toWei('2000000'),
       0,
       parseInt(Date.now()*0.001) + 10,
       10,
       100,
-      web3.utils.toWei('0.5','ether'),
+      web3.utils.toWei('0.5'),
+      web3.utils.toWei('2000000')
       ],
       'QmXE83PeG8xq8sT6GdeoYaAVVozAcJ4dN7xVCLuehDxVb1',
       this.shares.address,

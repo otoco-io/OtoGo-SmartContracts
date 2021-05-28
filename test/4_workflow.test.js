@@ -15,17 +15,19 @@ contract('Stake Tests', async (accounts) => {
   });
 
   it('Testing pool lifetime, stake, unstake, withdraw.', async function () {
+    this.endTimestamp = parseInt(Date.now()*0.001) + 2
 
     const poolAddress = await this.factory.createLaunchPool(
       [this.token.address, this.token2.address],
       [
-      web3.utils.toWei('100','ether'),
-      web3.utils.toWei('2000000','ether'),
+      web3.utils.toWei('100'),
+      web3.utils.toWei('2000000'),
       0,
-      parseInt(Date.now()*0.001) + 2,
+      this.endTimestamp,
       10,
       100,
       web3.utils.toWei('0.5','ether'),
+      web3.utils.toWei('2000000')
       ],
       'QmXE83PeG8xq8sT6GdeoYaAVVozAcJ4dN7xVCLuehDxVb1',
       this.shares.address,
@@ -83,6 +85,15 @@ contract('Stake Tests', async (accounts) => {
     expect(stakes[4].toString()).to.be.equals(web3.utils.toWei('400000'));
   });
 
+  it ('Wait 10 than delay launch pool', async function () {
+    await wait();
+    await this.pool.extendEndTimestamp(5);
+    this.endTimestamp += 5;
+    let info = await this.pool.getGeneralInfos();
+    expect(info[7].toString()).to.equal('1');
+    expect(info[1].toString()).to.equal(this.endTimestamp.toString());
+  });
+
   it ('Wait 10 seconds before close pool', async function () {
     await wait();
     await this.pool.lock();
@@ -130,6 +141,6 @@ contract('Stake Tests', async (accounts) => {
 
 function wait() {
   return new Promise((resolve) => {
-    setTimeout(resolve(), 50000);
+    setTimeout(resolve, 10000);
   });
 }

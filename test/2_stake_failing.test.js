@@ -18,13 +18,14 @@ contract('Stake tests that should fail', async (accounts) => {
     const poolAddress = await this.factory.createLaunchPool(
       [this.token.address],
       [
-      web3.utils.toWei('100','ether'),
-      web3.utils.toWei('5000000','ether'),
+      web3.utils.toWei('100'),
+      web3.utils.toWei('5000000'),
       0,
       parseInt(Date.now()*0.001) + 1000,
       10,
       10000,
       web3.utils.toWei('1','ether'),
+      web3.utils.toWei('50')
       ],
       'QmXE83PeG8xq8sT6GdeoYaAVVozAcJ4dN7xVCLuehDxVb1',
       this.shares.address,
@@ -66,6 +67,16 @@ contract('Stake tests that should fail', async (accounts) => {
       expect(false).to.be.true; // Should not pass here
     } catch (err) {
       expect(err.reason).to.be.equals('Stake index out of bounds');
+    }
+  });
+
+  it ('Try to stake more than clamped amount', async function () {
+    await this.token.approve(this.pool.address, web3.utils.toWei('200','ether'), {from:accounts[0]});
+    try { 
+      await this.pool.stake(this.token.address, web3.utils.toWei('100','ether'), {from:accounts[0]});
+      expect(false).to.be.true; // Should not pass here
+    } catch (err) {
+      expect(err.reason).to.be.equals('Stake maximum amount exceeded');
     }
   });
 
