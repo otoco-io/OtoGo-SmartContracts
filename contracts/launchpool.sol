@@ -507,6 +507,8 @@ contract LaunchPool {
     /** @dev Extend staking period of the launch pool.
      **/
     function extendEndTimestamp(uint256 extension) external onlySponsor isStaking {
+        // Prevent extension to be bigger than 1 year, to not allow overflows
+        require(extension < 356 days, "Extensions must be small than 1 year");
         _endTimestamp += extension;
     }
 

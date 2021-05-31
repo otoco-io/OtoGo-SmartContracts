@@ -21,7 +21,7 @@ contract('Stake tests that should fail', async (accounts) => {
       web3.utils.toWei('100'),
       web3.utils.toWei('5000000'),
       0,
-      parseInt(Date.now()*0.001) + 1000,
+      parseInt(Date.now()*0.001) + 10,
       10,
       10000,
       web3.utils.toWei('1','ether'),
@@ -100,4 +100,37 @@ contract('Stake tests that should fail', async (accounts) => {
     }
   });
 
+  it ('Try extend end timestamp more than 1 year', async function () {
+    try { 
+      await this.pool.extendEndTimestamp(50000000000);
+      expect(false).to.be.true; // Should not pass here
+    } catch (err) {
+      expect(err.reason).to.be.equals('Extensions must be small than 1 year');
+    }
+  });
+
+  it ('Wait 10 than delay launch pool', async function () {
+    await wait();
+    await this.pool.extendEndTimestamp(5);
+    this.endTimestamp += 5;
+    let info = await this.pool.getGeneralInfos();
+    expect(info[7].toString()).to.equal('1');
+  });
+
+  it ('Should trigger error due to not reach minimum stake', async function () {
+    try { 
+      await wait();
+      await this.pool.lock();
+      expect(false).to.be.true; // Should not pass here
+    } catch (err) {
+      expect(err.reason).to.be.equals('LaunchPool not reached minimum stake');
+    }
+  });
+
 })
+
+function wait() {
+  return new Promise((resolve) => {
+    setTimeout(resolve, 10000);
+  });
+}
