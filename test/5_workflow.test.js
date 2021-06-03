@@ -28,14 +28,14 @@ contract('Lifetime with Stake and Unstake, different decimals', async (accounts)
       web3.utils.toWei('0.5'),
       web3.utils.toWei('2000000')
       ],
-      'QmXE83PeG8xq8sT6GdeoYaAVVozAcJ4dN7xVCLuehDxVb1',
+      'QmZuQMs9n2TJUsV2VyGHox5wwxNAg3FVr5SWRKU814DCra',
       this.shares.address,
       0
     )
 
     this.pool = await LaunchPool.at(poolAddress.logs[0].args.pool);
     await this.shares.approve(this.pool.address, web3.utils.toWei('4000000','ether'));
-    expect(await this.pool.metadata()).to.equal("QmXE83PeG8xq8sT6GdeoYaAVVozAcJ4dN7xVCLuehDxVb1");
+    expect(await this.pool.metadata()).to.equal("QmZuQMs9n2TJUsV2VyGHox5wwxNAg3FVr5SWRKU814DCra");
   });
 
   it('Change stage to staking', async function () {

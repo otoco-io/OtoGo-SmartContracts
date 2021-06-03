@@ -27,12 +27,12 @@ contract('Stake tests that should fail', async (accounts) => {
       web3.utils.toWei('1','ether'),
       web3.utils.toWei('50')
       ],
-      'QmXE83PeG8xq8sT6GdeoYaAVVozAcJ4dN7xVCLuehDxVb1',
+      'QmZuQMs9n2TJUsV2VyGHox5wwxNAg3FVr5SWRKU814DCra',
       this.shares.address,
       0
     )
     this.pool = await LaunchPool.at(poolAddress.logs[0].args.pool);
-    expect(await this.pool.metadata()).to.equal("QmXE83PeG8xq8sT6GdeoYaAVVozAcJ4dN7xVCLuehDxVb1");
+    expect(await this.pool.metadata()).to.equal("QmZuQMs9n2TJUsV2VyGHox5wwxNAg3FVr5SWRKU814DCra");
   });
 
   it ('Try to stake without token balance', async function () {
@@ -107,14 +107,6 @@ contract('Stake tests that should fail', async (accounts) => {
     } catch (err) {
       expect(err.reason).to.be.equals('Extensions must be small than 1 year');
     }
-  });
-
-  it ('Wait 10 than delay launch pool', async function () {
-    await wait();
-    await this.pool.extendEndTimestamp(5);
-    this.endTimestamp += 5;
-    let info = await this.pool.getGeneralInfos();
-    expect(info[7].toString()).to.equal('1');
   });
 
   it ('Should trigger error due to not reach minimum stake', async function () {

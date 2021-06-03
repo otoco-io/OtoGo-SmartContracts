@@ -29,14 +29,18 @@ contract('Stake Tests', async (accounts) => {
       web3.utils.toWei('0.5','ether'),
       web3.utils.toWei('2000000')
       ],
-      'QmXE83PeG8xq8sT6GdeoYaAVVozAcJ4dN7xVCLuehDxVb1',
+      'QmZuQMs9n2TJUsV2VyGHox5wwxNAg3FVr5SWRKU814DCra',
       this.shares.address,
       0
     )
 
     this.pool = await LaunchPool.at(poolAddress.logs[0].args.pool);
+    console.log('LAUNCH POOL DEPLOYED:', this.pool.address);
+    console.log('SHARES DEPLOYED:', this.shares.address);
+    console.log('TOKEN DAI DEPLOYED:', this.token.address);
+    console.log('TOKEN USDT DEPLOYED:', this.token2.address);
     await this.shares.approve(this.pool.address, web3.utils.toWei('4000000','ether'));
-    expect(await this.pool.metadata()).to.equal("QmXE83PeG8xq8sT6GdeoYaAVVozAcJ4dN7xVCLuehDxVb1");
+    expect(await this.pool.metadata()).to.equal("QmZuQMs9n2TJUsV2VyGHox5wwxNAg3FVr5SWRKU814DCra");
   });
 
   it('Change stage to staking', async function () {
