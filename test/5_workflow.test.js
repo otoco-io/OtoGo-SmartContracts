@@ -16,7 +16,7 @@ contract('Lifetime with Stake and Unstake, different decimals', async (accounts)
 
   it('Deploy a new launch pool', async function () {
 
-    const poolAddress = await this.factory.createLaunchPool(
+    const receipt = await this.factory.createLaunchPool(
       [this.token.address, this.token2.address],
       [
       web3.utils.toWei('100'),
@@ -33,7 +33,9 @@ contract('Lifetime with Stake and Unstake, different decimals', async (accounts)
       0
     )
 
-    this.pool = await LaunchPool.at(poolAddress.logs[0].args.pool);
+    expect(receipt.logs[0].args.metadata).to.equal('QmZuQMs9n2TJUsV2VyGHox5wwxNAg3FVr5SWRKU814DCra');
+    expect(receipt.logs[0].args.sponsor).to.equal(accounts[0]);
+    this.pool = await LaunchPool.at(receipt.logs[0].args.pool);
     await this.shares.approve(this.pool.address, web3.utils.toWei('4000000','ether'));
     expect(await this.pool.metadata()).to.equal("QmZuQMs9n2TJUsV2VyGHox5wwxNAg3FVr5SWRKU814DCra");
   });
@@ -70,13 +72,42 @@ contract('Lifetime with Stake and Unstake, different decimals', async (accounts)
   });
 
   it ('Stake launch pool', async function () {
-    await this.pool.stake(this.token.address, web3.utils.toWei('400000','ether'), {from:accounts[2]});
-    await this.pool.stake(this.token.address, web3.utils.toWei('400000','ether'), {from:accounts[3]});
-    await this.pool.stake(this.token2.address, web3.utils.toWei('400000','mwei'), {from:accounts[4]});
-    await this.pool.stake(this.token2.address, web3.utils.toWei('400000','mwei'), {from:accounts[5]});
-    await this.pool.stake(this.token2.address, web3.utils.toWei('400000','mwei'), {from:accounts[6]});
-    await this.pool.unstake(0, {from:accounts[3]});
-    await this.pool.unstake(0, {from:accounts[5]});
+    let receipt;
+    receipt = await this.pool.stake(this.token.address, web3.utils.toWei('400000','ether'), {from:accounts[2]});
+    expect(receipt.logs[0].args.index.toString()).to.be.equals('0');
+    expect(receipt.logs[0].args.investor).to.be.equals(accounts[2]);
+    expect(receipt.logs[0].args.token).to.be.equals(this.token.address);
+    expect(receipt.logs[0].args.amount.toString()).to.be.equals(web3.utils.toWei('400000','ether'));
+    receipt = await this.pool.stake(this.token.address, web3.utils.toWei('400000','ether'), {from:accounts[3]});
+    expect(receipt.logs[0].args.index.toString()).to.be.equals('1');
+    expect(receipt.logs[0].args.investor).to.be.equals(accounts[3]);
+    expect(receipt.logs[0].args.token).to.be.equals(this.token.address);
+    expect(receipt.logs[0].args.amount.toString()).to.be.equals(web3.utils.toWei('400000','ether'));
+    receipt = await this.pool.stake(this.token2.address, web3.utils.toWei('400000','mwei'), {from:accounts[4]});
+    expect(receipt.logs[0].args.index.toString()).to.be.equals('2');
+    expect(receipt.logs[0].args.investor).to.be.equals(accounts[4]);
+    expect(receipt.logs[0].args.token).to.be.equals(this.token2.address);
+    expect(receipt.logs[0].args.amount.toString()).to.be.equals(web3.utils.toWei('400000','mwei'));
+    receipt = await this.pool.stake(this.token2.address, web3.utils.toWei('400000','mwei'), {from:accounts[5]});
+    expect(receipt.logs[0].args.index.toString()).to.be.equals('3');
+    expect(receipt.logs[0].args.investor).to.be.equals(accounts[5]);
+    expect(receipt.logs[0].args.token).to.be.equals(this.token2.address);
+    expect(receipt.logs[0].args.amount.toString()).to.be.equals(web3.utils.toWei('400000','mwei'));
+    receipt = await this.pool.stake(this.token2.address, web3.utils.toWei('400000','mwei'), {from:accounts[6]});
+    expect(receipt.logs[0].args.index.toString()).to.be.equals('4');
+    expect(receipt.logs[0].args.investor).to.be.equals(accounts[6]);
+    expect(receipt.logs[0].args.token).to.be.equals(this.token2.address);
+    expect(receipt.logs[0].args.amount.toString()).to.be.equals(web3.utils.toWei('400000','mwei'));
+    receipt = await this.pool.unstake(0, {from:accounts[3]});
+    expect(receipt.logs[0].args.index.toString()).to.be.equals('1');
+    expect(receipt.logs[0].args.investor).to.be.equals(accounts[3]);
+    expect(receipt.logs[0].args.token).to.be.equals(this.token.address);
+    expect(receipt.logs[0].args.amount.toString()).to.be.equals(web3.utils.toWei('400000','ether'));
+    receipt = await this.pool.unstake(0, {from:accounts[5]});
+    expect(receipt.logs[0].args.index.toString()).to.be.equals('3');
+    expect(receipt.logs[0].args.investor).to.be.equals(accounts[5]);
+    expect(receipt.logs[0].args.token).to.be.equals(this.token2.address);
+    expect(receipt.logs[0].args.amount.toString()).to.be.equals(web3.utils.toWei('400000','ether'));
     var stakes = await this.pool.stakesList();
     expect(stakes).to.be.an('array');
     expect(stakes[0].toString()).to.be.equals(web3.utils.toWei('400000'));
@@ -100,7 +131,19 @@ contract('Lifetime with Stake and Unstake, different decimals', async (accounts)
   });
 
   it ('Distribute shares to the investors', async function () {
-    await this.pool.distributeSharesChunk();
+    let receipt = await this.pool.distributeSharesChunk();
+    expect(receipt.logs[0].args.index.toString()).to.be.equals('0');
+    expect(receipt.logs[0].args.investor).to.be.equals(accounts[2]);
+    expect(receipt.logs[0].args.amount.toString()).to.be.equals(web3.utils.toWei('400000','ether'));
+    expect(receipt.logs[0].args.shares.toString()).to.be.equals(web3.utils.toWei('800000','ether'));
+    expect(receipt.logs[1].args.index.toString()).to.be.equals('2');
+    expect(receipt.logs[1].args.investor).to.be.equals(accounts[4]);
+    expect(receipt.logs[1].args.amount.toString()).to.be.equals(web3.utils.toWei('400000','ether'));
+    expect(receipt.logs[1].args.shares.toString()).to.be.equals('689655172413793103448275');
+    expect(receipt.logs[2].args.index.toString()).to.be.equals('4');
+    expect(receipt.logs[2].args.investor).to.be.equals(accounts[6]);
+    expect(receipt.logs[2].args.amount.toString()).to.be.equals(web3.utils.toWei('400000','ether'));
+    expect(receipt.logs[2].args.shares.toString()).to.be.equals('487804878048780487804878');
     let info = await this.pool.getGeneralInfos();
     expect(info[7].toString()).to.equal('5');
     let balance2 = await this.shares.balanceOf(accounts[2]);

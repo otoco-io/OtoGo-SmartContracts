@@ -1,6 +1,8 @@
 const LaunchPool = artifacts.require("LaunchPool");
 const LaunchToken = artifacts.require("LaunchToken");
 const PoolFactory = artifacts.require("PoolFactory");
+const LaunchPoolSource = artifacts.require("LaunchPool");
+const LaunchCurveSource = artifacts.require("LaunchCurveExponential");
 const web3 = require('web3');
 const { expect } = require('chai');
 
@@ -9,10 +11,12 @@ contract('Stake Tests', async (accounts) => {
   before(async function () {
     // Deploy token
     this.factory = await PoolFactory.deployed();
+    this.poolSource = await LaunchPoolSource.deployed();
+    this.curveSource = await LaunchCurveSource.deployed();
     this.token = await LaunchToken.new('Test DAI', 'DAI', web3.utils.toWei('100000000','ether'), 18);
     this.shares = await LaunchToken.new('Token Shares', 'SHAR', web3.utils.toWei('10000000','ether'), 18);
   });
- 
+
   it('Deploy a new launch pool', async function () {
 
     const poolAddress = await this.factory.createLaunchPool(
@@ -35,6 +39,21 @@ contract('Stake Tests', async (accounts) => {
     this.pool = await LaunchPool.at(poolAddress.logs[0].args.pool);
     expect(await this.pool.metadata()).to.equal("QmZuQMs9n2TJUsV2VyGHox5wwxNAg3FVr5SWRKU814DCra");
   });
+
+  it ('Update Pool metadata', async function () {
+    const receipt = await this.pool.updateMetadata("QmZuQMs");
+    expect(receipt.logs[0].args.newHash).to.equal("QmZuQMs");
+    expect(await this.pool.metadata()).to.equal("QmZuQMs");
+  });
+
+  it('Try re-initialize Pool from sponsor', async function () {
+    try { 
+      await this.factory.initialize(this.poolSource.address, this.curveSource.address, {from:accounts[1]})
+      expect(false).to.be.true; // Should not pass here
+    } catch (err) {
+      expect(err.reason).to.be.equals('Initializable: contract is already initialized');
+    }
+  })
 
   it ('Stake launch pool', async function () {
     expect((await this.pool.stage()).toString()).to.be.equals('1');

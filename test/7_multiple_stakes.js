@@ -84,11 +84,11 @@ contract('Multiple stakes', async (accounts) => {
     var stakes = await this.pool.stakesList();
     expect(stakes).to.be.an('array');
     expect(stakes.length).to.be.equals(100);
-    expect(stakes[0].toString()).to.be.equals(web3.utils.toWei('400'));
-    expect(stakes[1].toString()).to.be.equals(web3.utils.toWei('400'));
-    expect(stakes[2].toString()).to.be.equals(web3.utils.toWei('400'));
-    expect(stakes[3].toString()).to.be.equals(web3.utils.toWei('400'));
-    expect(stakes[4].toString()).to.be.equals(web3.utils.toWei('400'));
+    expect(stakes[0].toString()).to.be.equals(web3.utils.toWei('4000'));
+    expect(stakes[1].toString()).to.be.equals(web3.utils.toWei('4000'));
+    expect(stakes[2].toString()).to.be.equals(web3.utils.toWei('4000'));
+    expect(stakes[3].toString()).to.be.equals(web3.utils.toWei('4000'));
+    expect(stakes[4].toString()).to.be.equals(web3.utils.toWei('4000'));
   });
 
   it('Sponsor tries to withdraw user stakes', async function () {

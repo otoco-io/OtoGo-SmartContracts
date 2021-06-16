@@ -13,25 +13,28 @@ interface PoolInterface {
         address _shares,
         address _curve
     ) external;
-    function transferOwnership(address newOwner) external;
 }
 
 contract PoolFactory is OwnableUpgradeable {
-    event PoolCreated(string indexed name, address pool);
-
+    event PoolCreated(address indexed sponsor, address pool, string metadata);
+    event UpdatedPoolSource(address indexed newSource);
+    event AddedCurveSource(address indexed newSource);
     address private _poolSource;
     address[] private _curveSources;
 
     function initialize(address poolSource, address curveSource) external {
+        __Ownable_init();
         _poolSource = poolSource;
         _curveSources.push(curveSource);
     }
 
-    function updateTokenContract(address newAddress) public onlyOwner {
+    function updatePoolSource(address newAddress) public onlyOwner {
         _poolSource = newAddress;
+        emit UpdatedPoolSource(newAddress);
     }
     function addCurveSource(address newAddress) public onlyOwner {
         _curveSources.push(newAddress);
+        emit AddedCurveSource(newAddress);
     }
 
     function createLaunchPool (
@@ -41,8 +44,8 @@ contract PoolFactory is OwnableUpgradeable {
         address _shares,
         uint16 _curve
     ) external returns (address pool){
-        pool = ClonesUpgradeable.cloneDeterministic(_poolSource, (keccak256(abi.encodePacked(_metadata))));
+        pool = ClonesUpgradeable.clone(_poolSource);
         PoolInterface(pool).initialize(_allowedTokens, _uintArgs, _metadata, msg.sender, _shares, _curveSources[_curve]);
-        emit PoolCreated(_metadata, pool);
+        emit PoolCreated(msg.sender, pool, _metadata);
     }
 }

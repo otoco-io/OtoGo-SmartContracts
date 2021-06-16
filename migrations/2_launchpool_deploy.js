@@ -1,9 +1,7 @@
 const { deployProxy } = require('@openzeppelin/truffle-upgrades');
 const LaunchPool = artifacts.require("LaunchPool");
-const LaunchToken = artifacts.require("LaunchToken");
-const PoolFactory = artifacts.require("PoolFactory");
 const LaunchCurve = artifacts.require("LaunchCurveExponential");
-const web3 = require('web3');
+const PoolFactory = artifacts.require("PoolFactory");
 
 module.exports = async function (deployer, network) {
   await deployer.deploy(LaunchPool);

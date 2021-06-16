@@ -1,29 +1,12 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.4;
 
-interface InterfaceToken {
+import "../node_modules/@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
+import "../node_modules/@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
+import "../node_modules/@openzeppelin/contracts/token/ERC20/IERC20.sol";
+
+interface ITokenDecimals {
     function decimals() external view returns (uint8);
-
-    function totalSupply() external view returns (uint256);
-
-    function balanceOf(address account) external view returns (uint256);
-
-    function transfer(address recipient, uint256 amount)
-        external
-        returns (bool);
-
-    function allowance(address owner, address spender)
-        external
-        view
-        returns (uint256);
-
-    function approve(address spender, uint256 amount) external returns (bool);
-
-    function transferFrom(
-        address sender,
-        address recipient,
-        uint256 amount
-    ) external returns (bool);
 }
 
 interface InterfaceCurve {
@@ -43,7 +26,8 @@ interface InterfaceCurve {
     ) external view returns (uint256);
 }
 
-contract LaunchPool {
+contract LaunchPool is Initializable {
+    using SafeERC20 for IERC20;
     // Address of the sponsor that controls launch pools and token shares
     address private _sponsor;
     // IPFS hash containing JSON informations about the project
@@ -63,7 +47,7 @@ contract LaunchPool {
     uint256 private _startTimestamp;
     // Defines timestamp for Pool closes
     uint256 private _endTimestamp;
-    // The total amount to be staked by sponsors
+    // The total amount to be staked by investors
     uint256 private _stakesMax;
     // The minimum amount to be staken to approve launch pool
     uint256 private _stakesMin;
@@ -142,7 +126,7 @@ contract LaunchPool {
         uint256 amount,
         uint256 shares
     );
-    event MetadataUpdated(string indexed newHash);
+    event MetadataUpdated(string newHash);
 
     // **** CONSTRUCTOR ****
 
@@ -153,9 +137,7 @@ contract LaunchPool {
         address _owner,
         address _sharesAddress,
         address _curveAddress
-    ) public {
-        // Must not be initialized
-        require(stage == Stages.NotInitialized, "Contract already Initialized");
+    ) public initializer {
         // Allow at most 3 coins
         require(
             allowedTokens.length >= 1 && allowedTokens.length <= 3,
@@ -171,7 +153,7 @@ contract LaunchPool {
         _stakeClamp = uintArgs[7];
         // Prevent stakes max never surpass Shares total supply
         require(
-            InterfaceToken(_sharesAddress).totalSupply() >=
+            IERC20(_sharesAddress).totalSupply() >=
                 InterfaceCurve(_curveAddress).getShares(
                     _stakesMax,
                     0,
@@ -184,10 +166,10 @@ contract LaunchPool {
         // Store token allowance and treir decimals to easy normalize
         for (uint256 i = 0; i < allowedTokens.length; i++) {
             require(
-                InterfaceToken(allowedTokens[i]).decimals() <= 18,
+                ITokenDecimals(allowedTokens[i]).decimals() <= 18,
                 "Token allowed has more than 18 decimals"
             );
-            _tokenDecimals[allowedTokens[i]] = InterfaceToken(allowedTokens[i])
+            _tokenDecimals[allowedTokens[i]] = ITokenDecimals(allowedTokens[i])
                 .decimals();
             _allowedTokens[allowedTokens[i]] = true;
             _tokenList.push(allowedTokens[i]);
@@ -312,25 +294,30 @@ contract LaunchPool {
         return _tokenList;
     }
 
+     // Return token shares address
+    function sharesAddress() public view returns (address) {
+        return _token;
+    }
+
     /**
-     * @dev Returns detailed stakes from an sponsor.
+     * @dev Returns detailed stakes from an investor.
      * Stakes are returned as single dimension array.
-     * [0] Amount of token decimals for first sponsor stake
+     * [0] Amount of token decimals for first investor stake
      * [1] Stake amount of first stake
      * and so on...
      */
-    function stakesDetailedOf(address sponsor_)
+    function stakesDetailedOf(address investor_)
         public
         view
         returns (uint256[] memory)
     {
         uint256[] memory stakes =
-            new uint256[](_stakesByAccount[sponsor_].length * 2);
-        for (uint256 i = 0; i < _stakesByAccount[sponsor_].length; i++) {
+            new uint256[](_stakesByAccount[investor_].length * 2);
+        for (uint256 i = 0; i < _stakesByAccount[investor_].length; i++) {
             stakes[i * 2] = _tokenDecimals[
-                _stakes[_stakesByAccount[sponsor_][i]].token
+                _stakes[_stakesByAccount[investor_][i]].token
             ];
-            stakes[i * 2 + 1] = _stakes[_stakesByAccount[sponsor_][i]].amount;
+            stakes[i * 2 + 1] = _stakes[_stakesByAccount[investor_][i]].amount;
         }
         return stakes;
     }
@@ -338,8 +325,8 @@ contract LaunchPool {
     /**
      * @dev Return global stake indexes for a specific investor.
      */
-    function stakesOf(address sponsor_) public view returns (uint256[] memory) {
-        return _stakesByAccount[sponsor_];
+    function stakesOf(address investor_) public view returns (uint256[] memory) {
+        return _stakesByAccount[investor_];
     }
 
     function stakesList() public view returns (uint256[] memory) {
@@ -404,6 +391,7 @@ contract LaunchPool {
      **/
     function updateMetadata(string memory _hash) external onlySponsor {
         metadata = _hash;
+        emit MetadataUpdated(_hash);
     }
 
     // **** STAKING *****
@@ -428,18 +416,13 @@ contract LaunchPool {
             normalizedAmount >= _stakeAmountMin,
             "Stake below minimum amount"
         );
+        uint256 prevBalance = IERC20(token).balanceOf(address(this));
         // If the transfer fails, we revert and don't record the amount.
-        require(
-            InterfaceToken(token).transferFrom(
-                msg.sender,
-                address(this),
-                amount
-            ),
-            "Token transfer rejected"
-        );
+        IERC20(token).safeTransferFrom(msg.sender,address(this),amount);
+        uint256 resultAmount = IERC20(token).balanceOf(address(this))-prevBalance;
+        normalizedAmount = resultAmount * (10**(18 - _tokenDecimals[token]));
         // Store stake id after insert it to the queue
         TokenStake storage s = _stakes[_stakesCount];
-
         s.investor = msg.sender;
         s.token = token;
         // Convert any token amount that has less than 18 decimals to 18
@@ -447,7 +430,7 @@ contract LaunchPool {
 
         _stakesTotal += s.amount;
         _stakesByAccount[msg.sender].push(_stakesCount);
-        emit Staked(_stakesCount, msg.sender, token, amount);
+        emit Staked(_stakesCount, msg.sender, token, resultAmount);
         _stakesCount += 1;
     }
 
@@ -461,8 +444,10 @@ contract LaunchPool {
      */
     function unstake(uint256 stakeId) external {
         require(
-            stage == Stages.Initialized || stage == Stages.Aborted,
-            "No Staking or Aborted stage."
+            stage == Stages.Initialized ||
+            stage == Stages.Aborted ||
+            stage == Stages.Paused,
+            "No Staking/Paused/Aborted stage."
         );
         if (stage == Stages.Initialized) {
             require(block.timestamp <= _endTimestamp, "Launch Pool is closed");
@@ -475,13 +460,10 @@ contract LaunchPool {
         uint256 globalId = _stakesByAccount[msg.sender][stakeId];
         TokenStake memory _stake = _stakes[globalId];
         require(_stake.amount > 0, "Stake already unstaked");
-        require(
-            // In case of 6 decimals (USDC, USDC, etc.) tokens need to be converted back.
-            InterfaceToken(_stake.token).transfer(
-                msg.sender,
-                _stake.amount / (10**(18 - _tokenDecimals[_stake.token]))
-            ),
-            "Could not transfer stake back to the investor"
+        // In case of 6 decimals (USDC, USDC, etc.) tokens need to be converted back.
+        IERC20(_stake.token).safeTransfer(
+            msg.sender,
+            _stake.amount / (10**(18 - _tokenDecimals[_stake.token]))
         );
 
         _stakesTotal -= _stake.amount;
@@ -489,7 +471,7 @@ contract LaunchPool {
         emit Unstaked(globalId, msg.sender, _stake.token, _stake.amount);
     }
 
-    /** @dev This allows sponsor pause staking preventing investor to stake/unstake.
+    /** @dev This allows sponsor pause staking preventing investor to stake.
      * Only called by sponsor.
      **/
     function pause() external onlySponsor isStaking {
@@ -511,7 +493,7 @@ contract LaunchPool {
         isStaking
     {
         // Prevent extension to be bigger than 1 year, to not allow overflows
-        require(extension < 356 days, "Extensions must be small than 1 year");
+        require(extension < 365 days, "Extensions must be small than 1 year");
         _endTimestamp += extension;
     }
 
@@ -533,7 +515,6 @@ contract LaunchPool {
         InterfaceCurve curve = InterfaceCurve(_curve);
         while (_stakesCalculated < _stakesCount) {
             // Break while loop in case of lack of gas
-            // TODO Make this gasLeft calculation more precise
             if (gasleft() < 100000) break;
             // In case that stake has amount 0, it could be skipped
             if (_stakes[_stakesCalculated].amount > 0) {
@@ -561,16 +542,15 @@ contract LaunchPool {
      * Only called by sponsor.
      **/
     function distributeSharesChunk() external onlySponsor isDistributing {
-        InterfaceToken token = InterfaceToken(_token);
+        IERC20 token = IERC20(_token);
         TokenStake memory _stake;
         while (_stakesDistributed < _stakesCount) {
             // Break while loop in case of lack of gas
-            // TODO Make this gasLeft calculation more precise
             if (gasleft() < 100000) break;
             // In case that stake has amount 0, it could be skipped
             _stake = _stakes[_stakesDistributed];
             if (_stake.amount > 0) {
-                token.transferFrom(_sponsor, _stake.investor, _stake.shares);
+                token.safeTransferFrom(_sponsor, _stake.investor, _stake.shares);
                 // Zero amount and shares to not be distribute again same stake
                 emit Distributed(
                     _stakesDistributed,
@@ -594,9 +574,9 @@ contract LaunchPool {
      *  This could also be used to withdraw remain not used shared
      **/
     function withdrawStakes(address token) external onlySponsor isFinalized {
-        InterfaceToken instance = InterfaceToken(token);
+        IERC20 instance = IERC20(token);
         uint256 tokenBalance = instance.balanceOf(address(this));
-        instance.transfer(msg.sender, tokenBalance);
+        instance.safeTransfer(msg.sender, tokenBalance);
     }
 
     // **** ABORTING ****

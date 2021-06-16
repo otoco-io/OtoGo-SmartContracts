@@ -17,7 +17,7 @@ contract('Stake Tests', async (accounts) => {
   it('Testing pool lifetime, stake, unstake, withdraw.', async function () {
     this.endTimestamp = parseInt(Date.now()*0.001) + 2
 
-    const poolAddress = await this.factory.createLaunchPool(
+    const receipt = await this.factory.createLaunchPool(
       [this.token.address, this.token2.address],
       [
       web3.utils.toWei('100'),
@@ -34,7 +34,9 @@ contract('Stake Tests', async (accounts) => {
       0
     )
 
-    this.pool = await LaunchPool.at(poolAddress.logs[0].args.pool);
+    expect(receipt.logs[0].args.metadata).to.equal('QmZuQMs9n2TJUsV2VyGHox5wwxNAg3FVr5SWRKU814DCra');
+    expect(receipt.logs[0].args.sponsor).to.equal(accounts[0]);
+    this.pool = await LaunchPool.at(receipt.logs[0].args.pool);
     console.log('LAUNCH POOL DEPLOYED:', this.pool.address);
     console.log('SHARES DEPLOYED:', this.shares.address);
     console.log('TOKEN DAI DEPLOYED:', this.token.address);
@@ -88,6 +90,16 @@ contract('Stake Tests', async (accounts) => {
     expect(stakes[3].toString()).to.be.equals(web3.utils.toWei('400000'));
     expect(stakes[4].toString()).to.be.equals(web3.utils.toWei('400000'));
   });
+
+  it ('Wait 10 than delay launch pool', async function () {
+    await wait();
+    await this.pool.extendEndTimestamp(5);
+    this.endTimestamp += 5;
+    let info = await this.pool.getGeneralInfos();
+    expect(info[7].toString()).to.equal('1');
+    expect(info[1].toString()).to.equal(this.endTimestamp.toString());
+  });
+
 
   it ('Wait 10 than delay launch pool', async function () {
     await wait();
