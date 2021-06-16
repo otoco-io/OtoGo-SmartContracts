@@ -1,6 +1,6 @@
 # OtoGo - Launch Pools
 
-This project consists on a Factory Contract that deploys customized Launch pools with different attributes. Each Launch pool is controlled by its Sponsor, who is responsible to set its attributes and take decisions during pool lifetime.
+This project consists on a Factory Contract that deploys customized Launch pools with different attributes. Each Launch pool is controlled by its Sponsor, who is responsible for setting its attributes and take decisions during pool lifetime.
 
 ## Specifications
 
