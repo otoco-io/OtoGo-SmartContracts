@@ -4,7 +4,7 @@ This project consists on a Factory Contract that deploys customized Launch pools
 
 ## Specifications
 
-#### Pool Lifetime
+#### Pool Lifetime*
 
 - **NonInitialized** - This is the first stage of the launchpool before it is initialized. We use the "initialize" function of the new launchpool to set its parameters.
 - **Initialized** - Right after a Launchpool is initialized the stake/unstake is defined by values `_startTimestamp` and `_endTimestamp`. If `_startTimestamp` isn't reached, no action can be taken by stakers. Once `_startTimestamp` is reached, stakers could stake and unstake freely. Once `_endTimestamp` is reached, stake could only be called if there is still space for within the defined hard cap.
@@ -15,6 +15,8 @@ This project consists on a Factory Contract that deploys customized Launch pools
 - **Aborted** - At any moment during the launch pool phase, Sponsor can call the `abort` function. When aborted, the only function that stakers can call is the `unstake`function, which will let each investor retrieve their stakes.
 
 ![Otogo Launch Pool Lifetime](./docs/otogo-lifetime.png)
+
+*Note: Shares/tokens, as well as stakers/investors are used interchangeably here.
 
 ## Installation
 
