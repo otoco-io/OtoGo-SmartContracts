@@ -188,15 +188,6 @@ contract LaunchPool is Initializable {
         _;
     }
 
-    modifier isInitialized() {
-        require(
-            block.timestamp > _startTimestamp,
-            "Launch Pool has not started"
-        );
-        require(stage == Stages.Initialized, "Launch Pool is not Initialized");
-        _;
-    }
-
     modifier isStaking() {
         require(
             block.timestamp > _startTimestamp,
@@ -223,15 +214,6 @@ contract LaunchPool is Initializable {
         _;
     }
 
-    modifier isStaked() {
-        require(
-            block.timestamp >= _endTimestamp,
-            "LaunchPool end timestamp not reached"
-        );
-        require(stage == Stages.Finalized, "LaunchPool is not finalized");
-        _;
-    }
-
     modifier isCalculating() {
         require(
             stage == Stages.Calculating,
@@ -250,11 +232,6 @@ contract LaunchPool is Initializable {
 
     modifier isFinalized() {
         require(stage == Stages.Finalized, "Launch pool not finalized yet");
-        _;
-    }
-
-    modifier isAborted() {
-        require(stage == Stages.Aborted, "Launch Pool not aborted");
         _;
     }
 

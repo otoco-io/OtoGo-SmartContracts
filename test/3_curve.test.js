@@ -18,8 +18,8 @@ contract('Exponential Curve Tests', async (accounts) => {
     for(let i = 0; i<20; i++) {
       let stake = new BN(web3.utils.toWei('100000', 'ether'));
       let res = await this.curve.getShares(supply.toString(), balance.toString(), stake.toString(), '10', web3.utils.toWei('1', 'ether'));
-      console.log('STAKE:', stake.toString());
-      console.log('SHARE:', res.toString());
+      //console.log('STAKE:', stake.toString());
+      //console.log('SHARE:', res.toString());
       balance = balance.add(stake);
       expect(lastResult.gte(res)).to.be.true;
       expect(stake.gte(res)).to.be.true;
@@ -35,8 +35,8 @@ contract('Exponential Curve Tests', async (accounts) => {
     for(let i = 0; i<100; i++) {
       let stake = new BN(web3.utils.toWei('1000000000', 'ether'));
       let res = await this.curve.getShares(supply.toString(), balance.toString(), stake.toString(), '10', web3.utils.toWei('0.5', 'ether'));
-      console.log('STAKE:', stake.toString());
-      console.log('SHARE:', res.toString());
+      //console.log('STAKE:', stake.toString());
+      //console.log('SHARE:', res.toString());
       expect(lastResult.gte(res)).to.be.true;
       // expect(stake.gte(res)).to.be.true;
       balance = balance.add(stake);
@@ -49,17 +49,20 @@ contract('Exponential Curve Tests', async (accounts) => {
     let supply = new BN(web3.utils.toWei('200000', 'ether'));
     let lastResult = new BN(web3.utils.toWei('100000', 'ether'));
     let lastCurve = new BN(web3.utils.toWei('0', 'ether'));
+    let lastPrice = new BN(web3.utils.toWei('0', 'ether'));
     for(let i = 0; i<50; i++) {
       let stake = new BN(supply.sub(balance).div(new BN(2), 'ether'));
       let res = await this.curve.getShares(supply.toString(), balance.toString(), stake.toString(), '3', web3.utils.toWei('0.5', 'ether'));
       let curve = await this.curve.getCurve(supply.toString(), balance.toString(), '3');
-      console.log('STAKE:', stake.toString());
-      console.log('SHARE:', res.toString());
-      //expect(stake.gte(res)).to.be.true;
+      let price = await this.curve.getUnitPrice(supply.toString(), balance.toString(), '3', web3.utils.toWei('0.5', 'ether'));
+      //console.log('STAKE:', stake.toString());
+      //console.log('SHARE:', res.toString());
       expect(curve.gte(lastCurve)).to.be.true;
+      expect(price.gte(lastPrice)).to.be.true;
       balance = balance.add(stake);
       lastResult = res;
       lastCurve = curve;
+      lastPrice = price;
     }
   });
 

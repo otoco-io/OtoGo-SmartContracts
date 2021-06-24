@@ -34,10 +34,10 @@ contract('Multiple stakes', async (accounts) => {
     )
 
     this.pool = await LaunchPool.at(poolAddress.logs[0].args.pool);
-    console.log('LAUNCH POOL DEPLOYED:', this.pool.address);
-    console.log('SHARES DEPLOYED:', this.shares.address);
-    console.log('TOKEN DAI DEPLOYED:', this.token.address);
-    console.log('TOKEN USDT DEPLOYED:', this.token2.address);
+    // console.log('LAUNCH POOL DEPLOYED:', this.pool.address);
+    // console.log('SHARES DEPLOYED:', this.shares.address);
+    // console.log('TOKEN DAI DEPLOYED:', this.token.address);
+    // console.log('TOKEN USDT DEPLOYED:', this.token2.address);
     await this.shares.approve(this.pool.address, web3.utils.toWei('2000000', 'ether'));
     expect(await this.pool.metadata()).to.equal("QmZuQMs9n2TJUsV2VyGHox5wwxNAg3FVr5SWRKU814DCra");
   });

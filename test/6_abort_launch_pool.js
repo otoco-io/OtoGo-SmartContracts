@@ -22,7 +22,7 @@ contract('Abort launch pool tests', async (accounts) => {
       web3.utils.toWei('100'),
       web3.utils.toWei('2000000'),
       0,
-      parseInt(Date.now()*0.001) + 10,
+      parseInt(Date.now()*0.001) + 30,
       10,
       100,
       web3.utils.toWei('1'),

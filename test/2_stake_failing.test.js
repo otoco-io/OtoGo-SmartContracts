@@ -12,8 +12,99 @@ contract('Stake tests that should fail', async (accounts) => {
     this.factory = await PoolFactory.deployed();
     this.curveSource = await LaunchCurveSource.deployed();
     this.token = await LaunchToken.new('Test DAI', 'DAI', web3.utils.toWei('100000000','ether'), 18);
+    this.tokenWrong = await LaunchToken.new('Test DAI', 'DAI', web3.utils.toWei('100000000','ether'), 19);
     this.shares = await LaunchToken.new('Token Shares', 'SHAR', web3.utils.toWei('10000000','ether'), 18);
   });
+
+  it('Try to create a pool with more than 3 tokens', async function () {
+    try { 
+      const pool = await LaunchPool.new()
+      await pool.initialize(
+        [this.token.address, this.token.address, this.token.address, this.token.address],
+        [
+        web3.utils.toWei('100'),
+        web3.utils.toWei('2000000'),
+        0,
+        parseInt(Date.now()*0.001) + 10,
+        10,
+        100,
+        web3.utils.toWei('0.5','ether'),
+        web3.utils.toWei('2000000')
+        ],
+        'QmZuQMs9n2TJUsV2VyGHox5wwxNAg3FVr5SWRKU814DCra',
+        accounts[0],
+        this.shares.address,
+        this.curveSource.address
+      )
+      expect(false).to.be.true; // Should not pass here
+    } catch (err) {
+      expect(err.reason).to.be.equals('There must be at least 1 and at most 3 tokens');
+    }
+  })
+
+  it('Try to create a pool with more shares than total supply', async function () {
+    try { 
+      const pool = await LaunchPool.new()
+      await pool.initialize(
+        [this.token.address, this.token.address, this.token.address],
+        [
+        web3.utils.toWei('100'),
+        web3.utils.toWei('200000000000'),
+        0,
+        parseInt(Date.now()*0.001) + 10,
+        10,
+        100,
+        web3.utils.toWei('0.5','ether'),
+        web3.utils.toWei('2000000')
+        ],
+        'QmZuQMs9n2TJUsV2VyGHox5wwxNAg3FVr5SWRKU814DCra',
+        accounts[0],
+        this.shares.address,
+        this.curveSource.address
+      )
+      expect(false).to.be.true; // Should not pass here
+    } catch (err) {
+      expect(err.reason).to.be.equals('Shares token has not enough supply for staking distribution');
+    }
+  })
+
+  it('Try to create a pool with a token with more than 18 decimals', async function () {
+    try { 
+      const pool = await LaunchPool.new()
+      await pool.initialize(
+        [this.token.address, this.tokenWrong.address],
+        [
+        web3.utils.toWei('100'),
+        web3.utils.toWei('2000000'),
+        0,
+        parseInt(Date.now()*0.001) + 10,
+        10,
+        100,
+        web3.utils.toWei('0.5','ether'),
+        web3.utils.toWei('2000000')
+        ],
+        'QmZuQMs9n2TJUsV2VyGHox5wwxNAg3FVr5SWRKU814DCra',
+        accounts[0],
+        this.shares.address,
+        this.curveSource.address
+      )
+      expect(false).to.be.true; // Should not pass here
+    } catch (err) {
+      expect(err.reason).to.be.equals('Token allowed has more than 18 decimals');
+    }
+  })
+
+  it('Try to stake on a non initialized pool', async function () {
+    const pool = await LaunchPool.new()
+    await this.token.approve(pool.address, web3.utils.toWei('2','ether'));
+    try { 
+      await pool.stake(this.token.address, web3.utils.toWei('1','ether'));
+      expect(false).to.be.true; // Should not pass here
+    } catch (err) {
+      expect(err.reason).to.be.equals('Launch Pool is not staking');
+      await wait();
+    }
+  })
  
   it('Deploy a new launch pool', async function () {
     const poolAddress = await this.factory.createLaunchPool(
@@ -21,8 +112,8 @@ contract('Stake tests that should fail', async (accounts) => {
       [
       web3.utils.toWei('100'),
       web3.utils.toWei('5000000'),
-      0,
-      parseInt(Date.now()*0.001) + 10,
+      parseInt(Date.now()*0.001) + 5,
+      parseInt(Date.now()*0.001) + 20,
       10,
       10000,
       web3.utils.toWei('1','ether'),
@@ -88,6 +179,17 @@ contract('Stake tests that should fail', async (accounts) => {
     }
   });
 
+  it ('Try to stake before pool is opened', async function () {
+    await this.token.approve(this.pool.address, web3.utils.toWei('2','ether'));
+    try { 
+      await this.pool.stake(this.token.address, web3.utils.toWei('1','ether'));
+      expect(false).to.be.true; // Should not pass here
+    } catch (err) {
+      expect(err.reason).to.be.equals('Launch Pool has not started');
+      await wait();
+    }
+  });
+
   it ('Try to stake without token balance', async function () {
     await this.token.transfer(accounts[1], web3.utils.toWei('2','ether'));
     var balance = await this.token.balanceOf(accounts[2]);
@@ -109,6 +211,82 @@ contract('Stake tests that should fail', async (accounts) => {
       expect(false).to.be.true; // Should not pass here
     } catch (err) {
       expect(err.reason).to.be.equals('ERC20: transfer amount exceeds allowance');
+    }
+  });
+
+  it ('Try to stake a not allowed token', async function () {
+    await this.tokenWrong.approve(this.pool.address, web3.utils.toWei('2','ether'));
+    try { 
+      await this.pool.stake(this.tokenWrong.address, web3.utils.toWei('1','ether'));
+      expect(false).to.be.true; // Should not pass here
+    } catch (err) {
+      expect(err.reason).to.be.equals('Cannot deposit that token');
+    }
+  });
+
+  it ('Try to unpause a not paused pool', async function () {
+    try { 
+      await this.pool.unpause();
+      expect(false).to.be.true; // Should not pass here
+    } catch (err) {
+      expect(err.reason).to.be.equals('LaunchPool is not paused');
+    }
+  });
+
+  it ('Try to pause not being the sponsor', async function () {
+    try { 
+      await this.pool.pause({from:accounts[2]});
+      expect(false).to.be.true; // Should not pass here
+    } catch (err) {
+      expect(err.reason).to.be.equals('Sponsor: caller is not the sponsor');
+    }
+  });
+
+  it ('Pause the pool', async function () {
+    await this.pool.pause();
+    let info = await this.pool.getGeneralInfos();
+    expect(info[7].toString()).to.equal('2');
+  });
+
+  it ('Try to re-pause a paused pool', async function () {
+    try { 
+      await this.pool.pause();
+      expect(false).to.be.true; // Should not pass here
+    } catch (err) {
+      expect(err.reason).to.be.equals('Launch Pool is not staking');
+    }
+  });
+
+  it ('Unpause the pool', async function () {
+    await this.pool.unpause();
+    let info = await this.pool.getGeneralInfos();
+    expect(info[7].toString()).to.equal('1');
+  });
+
+  it ('Try to lock launch pool before ends', async function () {
+    try { 
+      await this.pool.lock();
+      expect(false).to.be.true; // Should not pass here
+    } catch (err) {
+      expect(err.reason).to.be.equals('LaunchPool end timestamp not reached');
+    }
+  });
+
+  it ('Try to calculate before lock', async function () {
+    try { 
+      await this.pool.calculateSharesChunk();
+      expect(false).to.be.true; // Should not pass here
+    } catch (err) {
+      expect(err.reason).to.be.equals('Tokens are not yet ready to calculate');
+    }
+  });
+
+  it ('Try to distribute before lock', async function () {
+    try { 
+      await this.pool.distributeSharesChunk();
+      expect(false).to.be.true; // Should not pass here
+    } catch (err) {
+      expect(err.reason).to.be.equals('Tokens are not yet ready to distribute');
     }
   });
 

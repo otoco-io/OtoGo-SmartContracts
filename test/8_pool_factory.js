@@ -1,4 +1,5 @@
 const PoolFactory = artifacts.require("PoolFactory");
+const LaunchToken = artifacts.require("LaunchToken");
 const LaunchPoolSource = artifacts.require("LaunchPool");
 const LaunchCurveSource = artifacts.require("LaunchCurveExponential");
 const { expect } = require('chai');
@@ -10,6 +11,9 @@ contract('Pool Factory Tests', async (accounts) => {
     this.factory = await PoolFactory.deployed();
     this.newCurve = await LaunchCurveSource.new();
     this.newPool = await LaunchPoolSource.new();
+    this.token = await LaunchToken.new('Test DAI', 'DAI', web3.utils.toWei('100000000','ether'), 18);
+    this.token2 = await LaunchToken.new('Test USDT', 'USDT', web3.utils.toWei('100000000','mwei'), 6);
+    this.shares = await LaunchToken.new('Token Shares', 'SHAR', web3.utils.toWei('10000000','ether'), 18);
   });
 
   it('Try re-initialize Pool Factory from owner', async function () {

@@ -16,12 +16,13 @@
   "dependencies": {
     "@openzeppelin/contracts": "^4.1.0",
     "@openzeppelin/contracts-upgradeable": "^4.1.0",
-    "@truffle/hdwallet-provider": "^1.4.0",
+    "@truffle/hdwallet-provider": "^1.4.1",
     "bn.js": "^5.2.0",
-    "chai": "^4.2.0"
+    "chai": "^4.3.4"
   },
   "devDependencies": {
     "@openzeppelin/truffle-upgrades": "^1.7.1",
+    "solidity-coverage": "^0.7.16",
     "truffle-plugin-verify": "^0.5.9"
   },
   "keywords": [

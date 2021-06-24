@@ -18,13 +18,14 @@ This project consists on a Factory Contract that deploys customized Launch pools
 
 *Note: Shares/tokens, as well as stakers/investors are used interchangeably here.
 
+## Glossary 
+
+- Factory Administrator - Define new types of curves that could be used, define the source code of launch pool to create Clones.
+- Sponsor - The launch pool creator/owners, the one who defined all specifications of the launch pool and trigger transactiosn to proceed to next steps and abort launch pool in case of any problem.
+- Investor - The user who stake/unstake some value on launch pool and receive some shares related to the project on launch pool is concluded.
+
+
 ## Installation
-
-Installing Ganache-cli (Local Ethereum Blockchain):
-
-```sh
-npm install -g ganache-cli
-```
 
 Installing Truffle + Mocha:
 
@@ -40,24 +41,11 @@ npm install
 
 ## Tests 
 
-Running ganache cli:
+Running code coverage tests:
 
 ```sh
-ganache-cli -p 8545
+truffle run coverage
 ```
-
-Running mocha tests:
-
-```sh
-truffle test
-```
-
-## Glossary 
-
-- Factory Administrator - Define new types of curves that could be used, define the source code of launch pool to create Clones.
-- Sponsor - The launch pool creator/owners, the one who defined all specifications of the launch pool and trigger transactiosn to proceed to next steps and abort launch pool in case of any problem.
-- Investor - The user who stake/unstake some value on launch pool and receive some shares related to the project on launch pool is concluded.
-
 
 ## References:
 

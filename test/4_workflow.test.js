@@ -37,10 +37,10 @@ contract('Stake Tests', async (accounts) => {
     expect(receipt.logs[0].args.metadata).to.equal('QmZuQMs9n2TJUsV2VyGHox5wwxNAg3FVr5SWRKU814DCra');
     expect(receipt.logs[0].args.sponsor).to.equal(accounts[0]);
     this.pool = await LaunchPool.at(receipt.logs[0].args.pool);
-    console.log('LAUNCH POOL DEPLOYED:', this.pool.address);
-    console.log('SHARES DEPLOYED:', this.shares.address);
-    console.log('TOKEN DAI DEPLOYED:', this.token.address);
-    console.log('TOKEN USDT DEPLOYED:', this.token2.address);
+    // console.log('LAUNCH POOL DEPLOYED:', this.pool.address);
+    // console.log('SHARES DEPLOYED:', this.shares.address);
+    // console.log('TOKEN DAI DEPLOYED:', this.token.address);
+    // console.log('TOKEN USDT DEPLOYED:', this.token2.address);
     await this.shares.approve(this.pool.address, web3.utils.toWei('4000000','ether'));
     expect(await this.pool.metadata()).to.equal("QmZuQMs9n2TJUsV2VyGHox5wwxNAg3FVr5SWRKU814DCra");
   });
@@ -49,6 +49,23 @@ contract('Stake Tests', async (accounts) => {
     let info = await this.pool.getGeneralInfos();
     expect(info[7].toString()).to.equal('1');
   })
+
+  it ('Verify token list function return', async function () {
+    const tokenList = await this.pool.tokenList();
+    expect(tokenList.length).to.equal(2);
+    expect(tokenList[0]).to.equal(this.token.address);
+    expect(tokenList[1]).to.equal(this.token2.address);
+  });
+
+  it ('Verify shares address function return', async function () {
+    const shares = await this.pool.sharesAddress();
+    expect(shares).to.equal(this.shares.address);
+  });
+
+  it ('Verify stake shares function return', async function () {
+    const shares = await this.pool.getStakeShares(100, 0);
+    expect(shares.toString()).to.equal('200');
+  });
 
   it('Distribute tokens for accounts to stake', async function() {
     // Send tokens 
@@ -91,6 +108,15 @@ contract('Stake Tests', async (accounts) => {
     expect(stakes[4].toString()).to.be.equals(web3.utils.toWei('400000'));
   });
 
+  it ('Try to stake above maximum amount', async function () {
+    try { 
+      await this.pool.stake(this.token.address, web3.utils.toWei('1','ether'), {from:accounts[2]});
+      expect(false).to.be.true; // Should not pass here
+    } catch (err) {
+      expect(err.reason).to.be.equals('Maximum staked amount exceeded');
+    }
+  });
+
   it ('Wait 10 than delay launch pool', async function () {
     await wait();
     await this.pool.extendEndTimestamp(5);
@@ -110,17 +136,41 @@ contract('Stake Tests', async (accounts) => {
     expect(info[1].toString()).to.equal(this.endTimestamp.toString());
   });
 
-  it ('Wait 10 seconds before close pool', async function () {
+  it ('Wait 10 seconds, try to unstake, then close pool', async function () {
     await wait();
+    try { 
+      await this.pool.unstake(0, {from:accounts[2]});
+      expect(false).to.be.true; // Should not pass here
+    } catch (err) {
+      expect(err.reason).to.be.equals('Launch Pool is closed');
+    }
     await this.pool.lock();
     let info = await this.pool.getGeneralInfos();
     expect(info[7].toString()).to.equal('3');
+  });
+
+  it ('Try to remove stake after lock', async function () {
+    try { 
+      await this.pool.unstake(0, {from:accounts[2]});
+      expect(false).to.be.true; // Should not pass here
+    } catch (err) {
+      expect(err.reason).to.be.equals('No Staking/Paused/Aborted stage.');
+    }
   });
 
   it ('Calculate stake shares', async function () {
     await this.pool.calculateSharesChunk();
     let info = await this.pool.getGeneralInfos();
     expect(info[7].toString()).to.equal('4');
+  });
+
+  it ('Try to remove stake after calculate', async function () {
+    try { 
+      await this.pool.unstake(0, {from:accounts[2]});
+      expect(false).to.be.true; // Should not pass here
+    } catch (err) {
+      expect(err.reason).to.be.equals('No Staking/Paused/Aborted stage.');
+    }
   });
 
   it ('Distribute shares to the investors', async function () {
@@ -141,6 +191,15 @@ contract('Stake Tests', async (accounts) => {
     expect(balance3.gt(balance4)).to.be.true;
     expect(balance4.gt(balance5)).to.be.true;
     expect(balance5.gt(balance6)).to.be.true;
+  });
+
+  it ('Try to remove stake after distribution', async function () {
+    try { 
+      await this.pool.unstake(0, {from:accounts[2]});
+      expect(false).to.be.true; // Should not pass here
+    } catch (err) {
+      expect(err.reason).to.be.equals('No Staking/Paused/Aborted stage.');
+    }
   });
 
   it ('Withdraw stakes from sponsor', async function () {

@@ -67,9 +67,6 @@ contract('Stake Tests', async (accounts) => {
     expect(stakes).to.be.an('array');
     expect(stakes.length).to.be.equals(1);
     stakes = await this.pool.stakesDetailedOf(accounts[1]);
-    stakes.forEach(e => {
-      console.log(e.toString())
-    });
     var balance = await this.token.balanceOf(accounts[1]);
     expect(balance.toString()).to.be.equals(web3.utils.toWei('1','ether'));
   });
