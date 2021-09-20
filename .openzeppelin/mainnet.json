@@ -1,0 +1,86 @@
+{
+  "manifestVersion": "3.2",
+  "admin": {
+    "address": "0xc13a0dDAE3bb4FD61508A2CD745F17c65CA7253D",
+    "txHash": "0x713d45e942d872b88db8a2db6a2184bb5495e4c5a968a556aa0cf6c4fd3b9f67"
+  },
+  "proxies": [
+    {
+      "address": "0xD183CC74354c70887250bfd68afcb1ACb04C00A6",
+      "txHash": "0xc3f6dc686b7c29f9abd7644be4da81db9b7ca5ce1a5141a931a6807a37b7aae9",
+      "kind": "transparent"
+    }
+  ],
+  "impls": {
+    "5435cd345709459a9319ed5c1ba62d74dc47b9bb9daf4007ef9f3e4431397f2a": {
+      "address": "0xbb8532cEfd063da4442429b7f43aF7E69e8c363c",
+      "txHash": "0x419266cf44b13e50949d6cbeba1058b0071eccc160dcd9f48aa7e1ea0834f54d",
+      "layout": {
+        "storage": [
+          {
+            "contract": "Initializable",
+            "label": "_initialized",
+            "type": "t_bool",
+            "src": "../node_modules/@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol:23"
+          },
+          {
+            "contract": "Initializable",
+            "label": "_initializing",
+            "type": "t_bool",
+            "src": "../node_modules/@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol:28"
+          },
+          {
+            "contract": "ContextUpgradeable",
+            "label": "__gap",
+            "type": "t_array(t_uint256)50_storage",
+            "src": "../node_modules/@openzeppelin/contracts-upgradeable/utils/ContextUpgradeable.sol:31"
+          },
+          {
+            "contract": "OwnableUpgradeable",
+            "label": "_owner",
+            "type": "t_address",
+            "src": "../node_modules/@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol:20"
+          },
+          {
+            "contract": "OwnableUpgradeable",
+            "label": "__gap",
+            "type": "t_array(t_uint256)49_storage",
+            "src": "../node_modules/@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol:74"
+          },
+          {
+            "contract": "PoolFactory",
+            "label": "_poolSource",
+            "type": "t_address",
+            "src": "poolfactory.sol:22"
+          },
+          {
+            "contract": "PoolFactory",
+            "label": "_curveSources",
+            "type": "t_array(t_address)dyn_storage",
+            "src": "poolfactory.sol:23"
+          }
+        ],
+        "types": {
+          "t_address": {
+            "label": "address"
+          },
+          "t_array(t_address)dyn_storage": {
+            "label": "address[]"
+          },
+          "t_array(t_uint256)49_storage": {
+            "label": "uint256[49]"
+          },
+          "t_uint256": {
+            "label": "uint256"
+          },
+          "t_array(t_uint256)50_storage": {
+            "label": "uint256[50]"
+          },
+          "t_bool": {
+            "label": "bool"
+          }
+        }
+      }
+    }
+  }
+}

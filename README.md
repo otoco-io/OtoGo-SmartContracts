@@ -111,6 +111,22 @@ Deploy a new launch pool with the parameters se by the caller. The caller will b
 - **Token Contract** (`_shares`) - With the address of the contracts containing the shares/tokens to be distributed.
 - **Curve Algorithm To Use** (`_curve`) - With an integer representing the index of the Curve stored on the contract. Recommended use value 0.
 
+## Networks
+
+### Ethereum Mainnet
+| Contract | Address |
+| ----------- | ----------- |
+| Launch Pool | [0xDf786Ac51d177aeCe3D34Ffa687D57c493C3Af79](https://etherscan.io/address/0xDf786Ac51d177aeCe3D34Ffa687D57c493C3Af79) |
+| Curve Exponential |  [0x8082a2fEFc36FeF1EaFa164B1F723C319a3E911E](https://etherscan.io/address/0x8082a2fEFc36FeF1EaFa164B1F723C319a3E911E) |
+| OtoCo Token | [0x23eC026590d6CCCfEce04097F9B49aE6A442C3BA](https://etherscan.io/token/0x23eC026590d6CCCfEce04097F9B49aE6A442C3BA)
+
+### Ropsten Testnet
+| Contract | Address |
+| ----------- | ----------- |
+| Pool Factory | [0xF3e365aAE8fFB292cc88f4aBAF1a7C2900a340F4](https://etherscan.io/address/0xF3e365aAE8fFB292cc88f4aBAF1a7C2900a340F4)
+| Launch Pool | [0x4b10592e0A37d8e9A3CE75D928c3d053345C3dc4](https://etherscan.io/address/0x4b10592e0A37d8e9A3CE75D928c3d053345C3dc4) |
+| Curve Exponential |  [0xc64d01bA584643a5bc04C6BD32E793aD1E11DFbA](https://etherscan.io/address/0xc64d01bA584643a5bc04C6BD32E793aD1E11DFbA) |
+
 ## Glossary 
 
 - Factory Administrator - Define new types of curves that could be used, define the source code of launch pool to create Clones.

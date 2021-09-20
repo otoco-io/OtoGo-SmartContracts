@@ -22,7 +22,7 @@ const HDWalletProvider = require('@truffle/hdwallet-provider');
 //
 const fs = require('fs');
 const mnemonicRopsten = fs.readFileSync(".secret.test").toString().trim();
-
+const mnemonicMain = fs.readFileSync(".secret.main").toString().trim();
 const apiKeyEtherscan = fs.readFileSync(".api.test").toString().trim();
 
 module.exports = {
@@ -66,18 +66,19 @@ module.exports = {
        provider: () => new HDWalletProvider(mnemonicRopsten, 'https://ropsten.infura.io/v3/f2e6a40391274a0793c63e923de0a170'),
        network_id: 3,       // Ropsten's id
        gas: 5500000,        // Ropsten has a lower block limit than mainnet
-       gasPrice: 5000000000,
+       gasPrice: 70000000000,
        confirmations: 1,    // # of confs to wait between deployments. (default: 0)
        timeoutBlocks: 200,  // # of blocks before a deployment times out  (minimum/default: 50)
        skipDryRun: true     // Skip dry run before migrations? (default: false for public nets )
      },
 
      main: {
-       provider: () => new HDWalletProvider(mnemonicMain, `infuraapiurl`),
+       provider: () => new HDWalletProvider(mnemonicMain, `https://mainnet.infura.io/v3/f1b0312e63e94d009ca4e0399d63e9cd`, 0, 1),
        network_id: 1,       // Mainnet's id
        gas: 5500000,        // Ropsten has a lower block limit than mainnet
-       gasPrice: 20000000000,
+       gasPrice: 100000000000,
        confirmations: 1,    // # of confs to wait between deployments. (default: 0)
+       from: '0x1216a72b7822Bbf7c38707F9a602FC241Cd6df30',
        timeoutBlocks:200,  // # of blocks before a deployment times out  (minimum/default: 50)
        skipDryRun: true     // Skip dry run before migrations? (default: false for public nets )
      },
@@ -91,7 +92,7 @@ module.exports = {
 
   // Set default mocha options here, use special reporters etc.
   mocha: {
-    timeout: 200000
+    timeout: 200000000
   },
 
   // Configure your compilers
