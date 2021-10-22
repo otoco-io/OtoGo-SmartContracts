@@ -33,7 +33,8 @@ contract('Stake Tests', async (accounts) => {
       ],
       'QmZuQMs9n2TJUsV2VyGHox5wwxNAg3FVr5SWRKU814DCra',
       this.shares.address,
-      0
+      0,
+      '0x0000000000000000000000000000000000000000'
     )
 
     this.pool = await LaunchPool.at(poolAddress.logs[0].args.pool);

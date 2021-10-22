@@ -151,6 +151,82 @@
           }
         }
       }
+    },
+    "62d8b60a95b06b31de02f645308923936fa9296cbad3d3fb2061658946b2168d": {
+      "address": "0x9A9A48f23A5702fcBd6354F70DAfBf2F1A31BeC2",
+      "txHash": "0xb8ebdee17823c2325b0202dfeed1340e72909671362745f1e9bc08c648463768",
+      "layout": {
+        "storage": [
+          {
+            "contract": "Initializable",
+            "label": "_initialized",
+            "type": "t_bool",
+            "src": "../node_modules/@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol:23"
+          },
+          {
+            "contract": "Initializable",
+            "label": "_initializing",
+            "type": "t_bool",
+            "src": "../node_modules/@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol:28"
+          },
+          {
+            "contract": "ContextUpgradeable",
+            "label": "__gap",
+            "type": "t_array(t_uint256)50_storage",
+            "src": "../node_modules/@openzeppelin/contracts-upgradeable/utils/ContextUpgradeable.sol:31"
+          },
+          {
+            "contract": "OwnableUpgradeable",
+            "label": "_owner",
+            "type": "t_address",
+            "src": "../node_modules/@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol:20"
+          },
+          {
+            "contract": "OwnableUpgradeable",
+            "label": "__gap",
+            "type": "t_array(t_uint256)49_storage",
+            "src": "../node_modules/@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol:74"
+          },
+          {
+            "contract": "PoolFactoryV2",
+            "label": "_poolSource",
+            "type": "t_address",
+            "src": "poolfactoryV2.sol:27"
+          },
+          {
+            "contract": "PoolFactoryV2",
+            "label": "_curveSources",
+            "type": "t_array(t_address)dyn_storage",
+            "src": "poolfactoryV2.sol:28"
+          },
+          {
+            "contract": "PoolFactoryV2",
+            "label": "_registryContract",
+            "type": "t_address",
+            "src": "poolfactoryV2.sol:29"
+          }
+        ],
+        "types": {
+          "t_address": {
+            "label": "address"
+          },
+          "t_array(t_address)dyn_storage": {
+            "label": "address[]"
+          },
+          "t_array(t_uint256)49_storage": {
+            "label": "uint256[49]"
+          },
+          "t_uint256": {
+            "label": "uint256"
+          },
+          "t_array(t_uint256)50_storage": {
+            "label": "uint256[50]"
+          },
+          "t_bool": {
+            "label": "bool"
+          }
+        }
+      }
     }
   }
 }

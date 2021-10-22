@@ -31,7 +31,8 @@ contract('Stake Tests', async (accounts) => {
       ],
       'QmZuQMs9n2TJUsV2VyGHox5wwxNAg3FVr5SWRKU814DCra',
       this.shares.address,
-      0
+      0,
+      '0x0000000000000000000000000000000000000000'
     )
 
     expect(receipt.logs[0].args.metadata).to.equal('QmZuQMs9n2TJUsV2VyGHox5wwxNAg3FVr5SWRKU814DCra');
